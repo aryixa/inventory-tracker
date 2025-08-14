@@ -10,6 +10,7 @@ import {
 import { protect, authorize } from '../middleware/auth.js';
 import { validateInventoryItem, validateTransaction } from '../middleware/validation.js';
 
+import { validateMongoIdParam } from '../middleware/validation.js';
 const router = express.Router();
 router.use(protect);
 router.route('/')
@@ -24,7 +25,8 @@ router.route('/:id')
 
 router.put(
   '/:id/quantity',
-  authorize('Admin', 'User'),    
+  authorize('Admin', 'User'),  
+  validateMongoIdParam,  
   validateTransaction,
   updateInventoryQuantity
 );

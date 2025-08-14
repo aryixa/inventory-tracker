@@ -1,7 +1,5 @@
 // src/contexts/DataContext.tsx
 import React, { createContext, useContext, useState } from 'react';
-
-// The interface no longer contains triggerRefresh.
 interface DataContextType {
   refreshKey: number; 
 }

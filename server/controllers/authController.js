@@ -1,4 +1,4 @@
-//server/controllers/authController.js
+// server/controllers/authController.js
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import asyncHandler from 'express-async-handler';
@@ -7,25 +7,28 @@ const cookieName = process.env.JWT_COOKIE_NAME || 'token';
 
 // Generate JWT (id only; role is loaded from DB in protect)
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '1h',
-  });
+  // Use a sane default if env is too small for dev (e.g., "30s")
+  const expiresIn = process.env.JWT_EXPIRE || '15m';
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn });
+};
+
+// Prefer maxAge to avoid clock drift; accept either env var name
+const getCookieMaxAgeMs = () => {
+  const v =
+    process.env.JWT_COOKIE_EXPIRE_MS ??
+    process.env.JWT_COOKIE_MAX_AGE_MS; // fallback to your previous name if present
+  const n = v ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : 60 * 60 * 1000; // default 1h
 };
 
 const buildCookieOptions = () => {
-  const defaultExpireMs = 60 * 60 * 1000; // 1 hour
-  const envExpireMs = process.env.JWT_COOKIE_EXPIRE_MS
-    ? Number(process.env.JWT_COOKIE_EXPIRE_MS)
-    : undefined;
-
-  const expiresMs = Number.isFinite(envExpireMs) ? envExpireMs : defaultExpireMs;
-
   const isProd = process.env.NODE_ENV === 'production';
   return {
-    expires: new Date(Date.now() + expiresMs),
+    maxAge: getCookieMaxAgeMs(),
     httpOnly: true,
-    secure: isProd,                       // secure cookies in production
-    sameSite: isProd ? 'none' : 'lax',    // cross-site in production if needed
+    secure: isProd,                    // secure cookies in production
+    sameSite: isProd ? 'none' : 'lax', // dev: lax is fine for localhost:5173 -> 5000
+    // path, domain defaults are fine for localhost
   };
 };
 
@@ -40,10 +43,7 @@ const setTokenCookie = (res, token) => {
 const register = asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
-  // Count existing admins to enforce "first user is Admin" and disable later public signups
   const adminCount = await User.countDocuments({ role: 'Admin' });
-
-  // If an Admin already exists, block public registration
   if (adminCount > 0) {
     return res.status(403).json({
       success: false,
@@ -52,7 +52,6 @@ const register = asyncHandler(async (req, res) => {
     });
   }
 
-  // Otherwise, create the first Admin
   const userExists = await User.findOne({ username });
   if (userExists) {
     return res.status(400).json({ success: false, message: 'User already exists' });
@@ -94,7 +93,6 @@ const login = asyncHandler(async (req, res) => {
     return res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 
-  // Block inactive accounts
   if (!user.isActive) {
     return res.status(403).json({ success: false, message: 'Account is deactivated' });
   }
@@ -107,14 +105,13 @@ const login = asyncHandler(async (req, res) => {
   const token = generateToken(user._id);
   setTokenCookie(res, token);
 
-  // Return minimal user info so frontend can gate UI (role-aware)
   res.status(200).json({
     success: true,
     message: 'Login successful',
     user: {
       id: user._id,
       username: user.username,
-      role: user.role,        // 'Admin' | 'User' | 'Viewer'
+      role: user.role,
     }
   });
 });
@@ -125,7 +122,7 @@ const login = asyncHandler(async (req, res) => {
 const logout = asyncHandler(async (req, res) => {
   const isProd = process.env.NODE_ENV === 'production';
   const options = {
-    expires: new Date(0),
+    maxAge: 0,
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
@@ -138,12 +135,11 @@ const logout = asyncHandler(async (req, res) => {
 // @route     GET /api/auth/me
 // @access    Protected
 const getMe = asyncHandler(async (req, res) => {
-  // req.user is set by protect middleware with id, username, role (and verified isActive)
   if (req.user) {
     return res.status(200).json({
       success: true,
       data: {
-        id: req.user.id || req.user._id, // supports either shape
+        id: req.user.id || req.user._id,
         username: req.user.username,
         role: req.user.role,
       }
@@ -153,13 +149,8 @@ const getMe = asyncHandler(async (req, res) => {
 });
 
 // @desc      Refresh token (placeholder)
-// @route     POST /api/auth/refresh
-// @access    Protected/Planned
 const refreshToken = asyncHandler(async (req, res) => {
   res.status(501).json({ success: false, message: 'Refresh token functionality not implemented' });
 });
 
 export { register, login, logout, getMe, checkAdmin, refreshToken };
-
-
-

@@ -1,3 +1,4 @@
+//server\controllers\exportController.js
 import InventoryItem from '../models/InventoryItem.js';
 import Transaction from '../models/Transaction.js';
 import createCsvWriter from 'csv-writer';

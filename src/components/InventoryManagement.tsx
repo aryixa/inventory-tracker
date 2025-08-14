@@ -1,6 +1,6 @@
 // src/components/InventoryManagement.tsx
-import React, { useState, useEffect, useCallback } from 'react';
-import { Package, Plus, Minus, Search } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Package, Plus, Minus, Search, RefreshCw } from 'lucide-react';
 import { InventoryItem } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
@@ -8,10 +8,12 @@ import AddStockModal from './modals/AddStockModal';
 import UseStockModal from './modals/UseStockModal';
 import toast from 'react-hot-toast';
 import { useData } from '../contexts/DataContext';
+import { useSocket } from '../contexts/SocketContext';
 
-import io from 'socket.io-client'; 
+const INVENTORY_CREATED = 'inventory:created';
+const INVENTORY_UPDATED = 'inventory:updated';
+const INVENTORY_DELETED = 'inventory:deleted';
 
-const socket = io(import.meta.env.VITE_BACKEND_URL);  
 const InventoryManagement: React.FC = () => {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,15 +21,28 @@ const InventoryManagement: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showUseModal, setShowUseModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { user, isLoading: authIsLoading, isAdmin, canReduce } = useAuth();
   const { refreshKey } = useData();
+  const socket = useSocket(); // Socket | null (provider present), waits for connect()
+
+  const matchesSearch = useCallback((item: InventoryItem, term: string) => {
+    const t = term.trim().toLowerCase();
+    if (!t) return true;
+    return (
+      item.brand.toLowerCase().includes(t) ||
+      item.type.toLowerCase().includes(t) ||
+      String(item.thickness).toLowerCase().includes(t) ||
+      item.sheetSize.toLowerCase().includes(t)
+    );
+  }, []);
 
   const loadItems = useCallback(
-    async () => {
+    async (showRefresh = false) => {
       if (authIsLoading) return;
-
       try {
+        if (showRefresh) setIsRefreshing(true);
         const response = await apiService.getInventoryItems({ search: searchTerm });
 
         if (response.success) {
@@ -40,6 +55,7 @@ const InventoryManagement: React.FC = () => {
         toast.error(error?.message || 'Failed to load inventory items');
       } finally {
         setIsLoading(false);
+        if (showRefresh) setIsRefreshing(false);
       }
     },
     [authIsLoading, searchTerm]
@@ -52,100 +68,110 @@ const InventoryManagement: React.FC = () => {
     }, 500);
     return () => clearTimeout(handler);
   }, [searchTerm, loadItems, authIsLoading, refreshKey]);
+
+  // Real-time socket listeners
   useEffect(() => {
-    // Listen for the 'inventory-updated' event from the server
-    socket.on('inventory-updated', (updatedItem: InventoryItem) => {
-      console.log('Received real-time inventory update:', updatedItem);
-      setItems(currentItems => {
-        // Find the index of the item that was updated
-        const itemIndex = currentItems.findIndex(item => item._id === updatedItem._id);
-        
-        // If the item is found, create a new array with the updated item
-        if (itemIndex !== -1) {
-          const newItems = [...currentItems];
-          newItems[itemIndex] = updatedItem;
-          return newItems;
-        }
+    if (!socket || !user) return;
 
-        // If the item wasn't found (e.g., it was newly created), we'll do a full refresh
-        // This is a robust fallback for scenarios not covered by simple updates
-        loadItems(); // Refresh all items to catch newly created ones
-        return currentItems;
-      });
+    const onCreated = (created: InventoryItem) => {
+    // A new item is a new item; no need to check for existing ID
+    setItems(prev => {
+        // Just add the new item to the beginning of the list
+        const next = [created, ...prev];
+        // Now, apply the search filter to the new list
+        return next.filter(i => matchesSearch(i, searchTerm));
     });
+};
 
-    // Clean up the socket connection when the component unmounts
-    return () => {
-      socket.off('inventory-updated'); // Clean up the specific event listener
+    const onUpdated = (updated: InventoryItem) => {
+      setItems(prev => {
+        const next = prev.map(i => (i._id === updated._id ? updated : i));
+        return next.filter(i => matchesSearch(i, searchTerm));
+      });
     };
-  }, [loadItems]); // Add loadItems to the dependency array
+
+    const onDeleted = (payload: { id: string } | string) => {
+      const id = typeof payload === 'string' ? payload : payload?.id;
+      if (!id) return;
+      setItems(prev => prev.filter(i => i._id !== id));
+    };
+
+    socket.on(INVENTORY_CREATED, onCreated);
+    socket.on(INVENTORY_UPDATED, onUpdated);
+    socket.on(INVENTORY_DELETED, onDeleted);
+
+    return () => {
+      socket.off(INVENTORY_CREATED, onCreated);
+      socket.off(INVENTORY_UPDATED, onUpdated);
+      socket.off(INVENTORY_DELETED, onDeleted);
+    };
+  }, [socket, user, searchTerm, matchesSearch]);
+
   const handleAddStock = async (quantity: number) => {
-    if (!selectedItem || !user) return;
-    if (!isAdmin) {
-      toast.error('Only admins can add stock.');
-      return;
-    }
+    if (!selectedItem || !user) return;
+    if (!isAdmin) {
+      toast.error('Only admins can add stock.');
+      return;
+    }
 
-    try {
-      const response = await apiService.updateInventoryQuantity(selectedItem._id, {
-        transactionType: 'addition',
-        quantityChanged: quantity,
-      });
+    try {
+      const response = await apiService.updateInventoryQuantity(selectedItem._id, {
+        transactionType: 'addition',
+        quantityChanged: quantity,
+      });
 
-      if (response.success) {
-        toast.success(response.message || 'Stock added successfully!');
-        // REMOVE THE loadItems() CALL HERE
-        setShowAddModal(false);
-        setSelectedItem(null);
-      } else {
-        toast.error(response.message || 'Failed to add stock');
-      }
-    } catch (error: any) {
-      console.error('Add stock error:', error);
-      const status = error?.status ?? error?.response?.status;
-      if (status === 403) {
-        toast.error(error?.response?.data?.message || 'You do not have permission to add stock.');
-      } else {
-        toast.error(error?.message || 'Failed to add stock');
-      }
-    }
-  };
+      if (response.success) {
+        toast.success(response.message || 'Stock added successfully!');
+        setShowAddModal(false);
+        setSelectedItem(null);
+      } else {
+        toast.error(response.message || 'Failed to add stock');
+      }
+    } catch (error: any) {
+      console.error('Add stock error:', error);
+      const status = error?.status ?? error?.response?.status;
+      if (status === 403) {
+        toast.error(error?.response?.data?.message || 'You do not have permission to add stock.');
+      } else {
+        toast.error(error?.message || 'Failed to add stock');
+      }
+    }
+  };
 
-  const handleUseStock = async (
-    quantity: number,
-    reductionReason: 'usage' | 'breakage'
-  ) => {
-    if (!selectedItem || !user) return;
-    if (!canReduce) {
-      toast.error('Viewers cannot reduce inventory.');
-      return;
-    }
+  const handleUseStock = async (
+    quantity: number,
+    reductionReason: 'usage' | 'breakage'
+  ) => {
+    if (!selectedItem || !user) return;
+    if (!canReduce) {
+      toast.error('Viewers cannot reduce inventory.');
+      return;
+    }
 
-    try {
-      const response = await apiService.updateInventoryQuantity(selectedItem._id, {
-        transactionType: 'reduction',
-        quantityChanged: quantity,
-        reductionReason,
-      });
+    try {
+      const response = await apiService.updateInventoryQuantity(selectedItem._id, {
+        transactionType: 'reduction',
+        quantityChanged: quantity,
+        reductionReason,
+      });
 
-      if (response.success) {
-        toast.success(response.message || 'Stock reduced successfully!');
-        // REMOVE THE loadItems() CALL HERE
-        setShowUseModal(false);
-        setSelectedItem(null);
-      } else {
-        toast.error(response.message || 'Failed to reduce stock');
-      }
-    } catch (error: any) {
-      console.error('Use stock error:', error);
-      const status = error?.status ?? error?.response?.status;
-      if (status === 403) {
-        toast.error(error?.response?.data?.message || 'You do not have permission to reduce inventory.');
-      } else {
-        toast.error(error?.message || 'Failed to reduce stock');
-      }
-    }
-  };
+      if (response.success) {
+        toast.success(response.message || 'Stock reduced successfully!');
+        setShowUseModal(false);
+        setSelectedItem(null);
+      } else {
+        toast.error(response.message || 'Failed to reduce stock');
+      }
+    } catch (error: any) {
+      console.error('Use stock error:', error);
+      const status = error?.status ?? error?.response?.status;
+      if (status === 403) {
+        toast.error(error?.response?.data?.message || 'You do not have permission to reduce inventory.');
+      } else {
+        toast.error(error?.message || 'Failed to reduce stock');
+      }
+    }
+  };
 
   if (isLoading || authIsLoading) {
     return (
@@ -173,6 +199,14 @@ const InventoryManagement: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          <button
+            onClick={() => loadItems(true)}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
       </div>
 

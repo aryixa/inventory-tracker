@@ -9,7 +9,8 @@ import {
 import { protect, authorize } from '../middleware/auth.js';
 import {
   validateAdminUserCreation,
-  validatePasswordChange
+  validatePasswordChange,
+   validateMongoIdParam
 } from '../middleware/validation.js';
 
 const router = express.Router();
@@ -24,8 +25,7 @@ router.route('/')
 
 
 router.route('/:id')
-  .delete(deactivateUser);
-
-router.put('/:id/password', validatePasswordChange, changeUserPassword);
+  .delete(validateMongoIdParam, deactivateUser);
+router.put('/:id/password',   validateMongoIdParam,  validatePasswordChange, changeUserPassword);
 
 export default router;

@@ -5,6 +5,7 @@ import {
   getTransactionStats
 } from '../controllers/transactionController.js';
 import { protect } from '../middleware/auth.js';
+import { validateMongoIdParam } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -13,6 +14,5 @@ router.use(protect);
 
 router.get('/', getTransactions);
 router.get('/stats', getTransactionStats);
-router.get('/:id', getTransaction);
-
+router.get('/:id', validateMongoIdParam, getTransaction);
 export default router;

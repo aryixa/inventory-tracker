@@ -1,8 +1,9 @@
-//server\controllers\inventoryController.js
+// server/controllers/inventoryController.js
 import InventoryItem from '../models/InventoryItem.js';
 import Transaction from '../models/Transaction.js';
 import mongoose from 'mongoose';
 import { io } from '../server.js';  
+
 // @desc    Get all inventory items
 // @route   GET /api/inventory
 // @access  Private
@@ -15,7 +16,6 @@ export const getInventoryItems = async (req, res) => {
     if (isNaN(page) || page < 1) page = 1;
     if (isNaN(limit) || limit < 1) limit = 10;
 
-    // Build search query
     let query = { isActive: true };
     if (search) {
       query.$or = [
@@ -119,19 +119,22 @@ export const createInventoryItem = async (req, res) => {
     const itemCreated = created[0];
 
     await Transaction.create([{
-    item_id: itemCreated._id, 
-    user_id: req.user.id,    
-    transactionType: 'addition',
-    quantityChanged: initialQuantity,
-    previousQuantity: 0,
-    newQuantity: initialQuantity,
-    notes: 'Initial stock addition'
-}], { session });
+      item_id: itemCreated._id, 
+      user_id: req.user.id,    
+      transactionType: 'addition',
+      quantityChanged: initialQuantity,
+      previousQuantity: 0,
+      newQuantity: initialQuantity,
+      notes: 'Initial stock addition'
+    }], { session });
 
     await session.commitTransaction();
 
     const populatedItem = await InventoryItem.findById(itemCreated._id)
       .populate('createdBy', 'username');
+
+    // 🔹 New: real-time event for created item
+    io.to('inventory').emit('inventory:created', populatedItem);
 
     res.status(201).json({
       success: true,
@@ -216,8 +219,7 @@ export const updateInventoryQuantity = async (req, res) => {
     const updatedItem = await InventoryItem.findById(item_id)
       .populate('createdBy', 'username');
 
-    // 👇️ ADD THIS LINE to broadcast the update
-    io.emit('inventory-updated', updatedItem);
+    io.to('inventory').emit('inventory:updated', updatedItem);
 
     const message = transactionType === 'addition'
       ? `Added ${quantityChanged} units to inventory`
@@ -254,6 +256,9 @@ export const deleteInventoryItem = async (req, res) => {
 
     item.isActive = false;
     await item.save();
+
+    // 🔹 New: real-time event for deleted item
+    io.to('inventory').emit('inventory:deleted', { id: item._id.toString() });
 
     res.status(200).json({
       success: true,
