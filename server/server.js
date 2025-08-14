@@ -69,6 +69,9 @@ const buildAllowedOrigins = () => {
   if (process.env.NODE_ENV !== 'production') {
     set.add('http://localhost:3000');
     set.add('http://localhost:5173');
+    set.add('https://silver-jellyfish-497679.hostingersite.com');
+
+
   }
 
   return Array.from(set);
