@@ -49,7 +49,7 @@ app.use(
   })
 );
 
-// Build allowed origins (env + sensible dev defaults)
+// Build allowed origins (env + sensible defaults)
 const buildAllowedOrigins = () => {
   const set = new Set();
 
@@ -65,24 +65,28 @@ const buildAllowedOrigins = () => {
     .filter(Boolean)
     .forEach(o => set.add(o));
 
-  // Dev defaults
+  // Dev defaults (local dev)
   if (process.env.NODE_ENV !== 'production') {
-    set.add('http://localhost:3000');
     set.add('http://localhost:5173');
+    set.add('http://127.0.0.1:5173');
+  }
+
+  // Production fallback (avoid accidental lockout if env not set)
+  // Note: prefer setting CLIENT_URLS on the platform; keep this as a safety net.
+  if (process.env.NODE_ENV === 'production' && set.size === 0) {
     set.add('https://silver-jellyfish-497679.hostingersite.com');
-
-
   }
 
   return Array.from(set);
 };
 
 const allowedOrigins = buildAllowedOrigins();
+console.log('[CORS] Allowed origins:', allowedOrigins);
 
 // CORS (mirror this list for Socket.IO)
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g., curl/postman) and same-origin
+    // Allow requests with no origin (e.g., curl/postman)
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
