@@ -15,10 +15,16 @@ export function initSocket(httpServer, allowedOrigins) {
     path: '/socket.io',
   });
 
+  // Engine-level connection errors (CORS/protocol/etc.)
   io.engine.on('connection_error', (err) => {
+    console.warn('[io.engine] connection_error:', {
+      code: err.code,
+      message: err.message,
+      context: err.context,
+    });
   });
 
-  
+  // Auth handshake
   io.use(async (socket, next) => {
     try {
       const rawCookie = socket.request.headers.cookie || '';
@@ -61,8 +67,12 @@ export function initSocket(httpServer, allowedOrigins) {
   });
 
   io.on('connection', (socket) => {
+    console.log(`Socket connected: ${socket.id} (${socket.user.username})`);
     socket.join('inventory');
-    socket.on('disconnect', (reason) => {    });
+
+    socket.on('disconnect', (reason) => {
+      console.log(`Socket disconnected: ${socket.id} reason: ${reason}`);
+    });
   });
 
   return io;

@@ -17,7 +17,10 @@ dotenv.config();
 
 // Connect DB
 connectDB();
+
 const app = express();
+
+// Trust proxy (needed for Secure cookies behind proxies/CDNs)
 app.set('trust proxy', 1);
 
 // Security headers
@@ -27,28 +30,30 @@ app.use(
   })
 );
 
-// Logging dev
+// Logging (dev only)
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
+// Compression
 app.use(compression());
 
-// Rate limiting
+// Rate limiting (apply to all API routes)
 app.use(
   '/api/',
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 300, 
+    max: 300, // allow more headroom for legitimate users
     standardHeaders: true,
     legacyHeaders: false,
   })
 );
 
-// Allowed origins 
+// Build allowed origins (env + sensible defaults)
 const buildAllowedOrigins = () => {
   const set = new Set();
 
+  // From env (single or comma-separated)
   const envList =
     process.env.CLIENT_URLS ??
     process.env.CLIENT_URL ??
@@ -60,12 +65,14 @@ const buildAllowedOrigins = () => {
     .filter(Boolean)
     .forEach(o => set.add(o));
 
-  // Dev defaults local
+  // Dev defaults (local dev)
   if (process.env.NODE_ENV !== 'production') {
     set.add('http://localhost:5173');
     set.add('http://127.0.0.1:5173');
   }
 
+  // Production fallback (avoid accidental lockout if env not set)
+  // Note: prefer setting CLIENT_URLS on the platform; keep this as a safety net.
   if (process.env.NODE_ENV === 'production' && set.size === 0) {
     set.add('https://silver-jellyfish-497679.hostingersite.com');
   }
@@ -74,10 +81,12 @@ const buildAllowedOrigins = () => {
 };
 
 const allowedOrigins = buildAllowedOrigins();
+console.log('[CORS] Allowed origins:', allowedOrigins);
 
-// CORS 
+// CORS (mirror this list for Socket.IO)
 const corsOptions = {
   origin: (origin, callback) => {
+    // Allow requests with no origin (e.g., curl/postman)
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
@@ -88,12 +97,17 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+// Preflight
 app.options('*', cors(corsOptions));
+
+// Body parsers
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Cookies
 app.use(cookieParser());
 
+// Routes
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import inventoryRoutes from './routes/inventory.js';
@@ -126,6 +140,7 @@ app.use('*', (req, res) => {
 
 // Global error handler (last)
 app.use((err, req, res, next) => {
+  // Normalize CORS error response
   if (err?.message === 'Not allowed by CORS') {
     return res.status(403).json({
       success: false,
@@ -140,15 +155,19 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Create HTTP server and init Socket.IO with identical origins list
 const PORT = process.env.PORT || 5000;
 const httpServer = http.createServer(app);
 
+// Export io so controllers can import it
 export const io = initSocket(httpServer, allowedOrigins);
 
+// Start server
 const server = httpServer.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
 
+// Graceful shutdowns
 const shutdown = (signal) => {
   console.log(`${signal} received. Shutting down gracefully...`);
   server.close(() => {
@@ -156,7 +175,7 @@ const shutdown = (signal) => {
     process.exit(0);
   });
 
-  // Force exit if not closed in time
+  // Force-exit if not closed in time
   setTimeout(() => {
     console.warn('Forcing shutdown.');
     process.exit(1);
