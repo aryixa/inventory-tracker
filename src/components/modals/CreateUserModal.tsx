@@ -7,9 +7,15 @@ interface CreateUserModalProps {
   onConfirm: (username: string, password: string, role: Extract<Role, 'User' | 'Viewer'>) => void;
   onClose: () => void;
   existingUsers: User[];
+  isLoading?: boolean; 
 }
 
-const CreateUserModal: React.FC<CreateUserModalProps> = ({ onConfirm, onClose, existingUsers }) => {
+const CreateUserModal: React.FC<CreateUserModalProps> = ({
+  onConfirm,
+  onClose,
+  existingUsers,
+  isLoading = false
+}) => {
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<Extract<Role, 'User' | 'Viewer'>>('User');
   const [password, setPassword] = useState('');
@@ -20,6 +26,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onConfirm, onClose, e
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // prevent double submit
 
     if (username.trim().length < 3) {
       setError('Username must be at least 3 characters long');
@@ -41,12 +48,18 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onConfirm, onClose, e
     onConfirm(username.trim(), password, role);
   };
 
+  const disableForm = isLoading;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Create New User</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button
+            onClick={onClose}
+            disabled={disableForm}
+            className={`transition-colors ${disableForm ? 'opacity-50 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+          >
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -60,6 +73,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onConfirm, onClose, e
               value={username}
               onChange={(e) => { setUsername(e.target.value); setError(''); }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={disableForm}
               required
               autoFocus
             />
@@ -74,11 +88,13 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onConfirm, onClose, e
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
                 className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={disableForm}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={disableForm}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -95,11 +111,13 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onConfirm, onClose, e
                 value={confirmPassword}
                 onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
                 className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={disableForm}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={disableForm}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -114,6 +132,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onConfirm, onClose, e
               value={role}
               onChange={(e) => setRole(e.target.value as Extract<Role, 'User' | 'Viewer'>)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={disableForm}
             >
               <option value="User">User</option>
               <option value="Viewer">Viewer (read-only)</option>
@@ -123,27 +142,37 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onConfirm, onClose, e
 
           {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
-          {/* Info */}
-          <div className="mb-6 p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> The user will be created with the password you specify. They should change it after first login.
-            </p>
-          </div>
-
           {/* Actions */}
           <div className="flex gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              disabled={disableForm}
+              className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                disableForm
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+              }`}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              disabled={disableForm}
+              className={`flex-1 px-4 py-2 rounded-lg text-white transition-colors flex items-center justify-center ${
+                disableForm
+                  ? 'bg-blue-400 cursor-wait'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             >
-              Create User
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full"></div>
+                  <span>Creating...</span>
+                </div>
+              ) : (
+                'Create User'
+              )}
             </button>
           </div>
         </form>

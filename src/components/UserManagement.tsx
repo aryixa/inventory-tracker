@@ -8,79 +8,34 @@ import ChangePasswordModal from './modals/ChangePasswordModal';
 import toast from 'react-hot-toast';
 
 const UserManagement: React.FC = () => {
+  // Data
   const [users, setUsers] = useState<UserType[]>([]);
+
+  // UI state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // Initialize to false
 
-  // NEW: role filter state
+  // Granular loading states
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState<string | null>(null); // userId when changing
+
+  // Filters
   const [roleFilter, setRoleFilter] = useState<'All' | Role>('All');
+  const roleFilters: Array<'All' | Role> = ['All', 'Admin', 'User', 'Viewer'];
 
-  // We use a ref to track if the effect has already run
+  // Mount/once-run guards
   const hasLoadedRef = useRef(false);
-
-  const loadUsers = async (showToast = false) => {
-    try {
-      setIsLoading(true);
-      const response: ApiResponse<UserType[]> = await apiService.getUsers();
-      if (response.success && Array.isArray(response.data)) {
-        setUsers(response.data);
-        if (showToast) {
-          toast.success('Users loaded successfully.');
-        }
-      } else {
-        console.error('API call was successful but returned invalid data format:', response);
-        setUsers([]);
-        toast.error('Failed to parse user data.');
-      }
-    } catch (error: any) {
-      console.error('Error loading users:', error);
-      toast.error(error.message || 'Failed to load users');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  const mountedRef = useRef(true);
   useEffect(() => {
-    if (!hasLoadedRef.current) {
-      loadUsers(true);
-      hasLoadedRef.current = true;
-    }
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
-  const handleCreateUser = async (
-    username: string,
-    password: string,
-    role: Extract<Role, 'User' | 'Viewer'>
-  ) => {
-    const payload: AdminCreateUserInput = { username, password, role };
-    try {
-      const response = await apiService.createUser(payload);
-      if (response.success) {
-        await loadUsers();
-        setShowCreateModal(false);
-        toast.success(response.message || `User "${username}" (${role}) created successfully!`);
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create user');
-    }
-  };
-
-  const handleChangePassword = async (newPassword: string) => {
-    if (!selectedUser) return;
-    try {
-      const response = await apiService.changeUserPassword(selectedUser._id, newPassword);
-      if (response.success) {
-        toast.success(response.message || `Password updated for ${selectedUser.username}`);
-        setShowPasswordModal(false);
-        setSelectedUser(null);
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to change password');
-    }
-  };
-
+  // Helpers
   const roleBadgeClass = (role: Role) => {
     switch (role) {
       case 'Admin':
@@ -94,13 +49,86 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  // NEW: list of available filters
-  const roleFilters: Array<'All' | Role> = ['All', 'Admin', 'User', 'Viewer'];
+  const filteredUsers = useMemo(
+    () => (roleFilter === 'All' ? users : users.filter((u) => u.role === roleFilter)),
+    [users, roleFilter]
+  );
 
-  // NEW: derived filtered users
-  const filteredUsers = useMemo(() => {
-    return roleFilter === 'All' ? users : users.filter((u) => u.role === roleFilter);
-  }, [users, roleFilter]);
+  // Data loaders/actions
+  const loadUsers = async (showToast = false) => {
+    try {
+      setIsLoadingUsers(true);
+      const response: ApiResponse<UserType[]> = await apiService.getUsers();
+      if (!mountedRef.current) return;
+
+      if (response.success && Array.isArray(response.data)) {
+        setUsers(response.data);
+        if (showToast) toast.success('Users loaded successfully.');
+      } else {
+        console.warn('Unexpected user data format from API:', response);
+        setUsers([]);
+        toast.error('Failed to parse user data.');
+      }
+    } catch (error: any) {
+      if (!mountedRef.current) return;
+      console.warn('Load users failed:', error);
+      toast.error(error?.message || 'Failed to load users');
+    } finally {
+      if (mountedRef.current) setIsLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true; // prevent StrictMode double-run noise
+      void loadUsers(true);
+    }
+  }, []);
+
+  const handleCreateUser = async (
+    username: string,
+    password: string,
+    role: Extract<Role, 'User' | 'Viewer'>
+  ) => {
+    setIsCreatingUser(true);
+    try {
+      const payload: AdminCreateUserInput = { username, password, role };
+      const response = await apiService.createUser(payload);
+      if (response.success) {
+        await loadUsers();
+        setShowCreateModal(false);
+        toast.success(response.message || `User "${username}" (${role}) created successfully!`);
+      } else {
+        toast.error(response.message || 'Failed to create user');
+      }
+    } catch (error: any) {
+      console.warn('Create user failed:', error);
+      toast.error(error?.message || 'Failed to create user');
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
+  const handleChangePassword = async (newPassword: string) => {
+    if (!selectedUser) return;
+    const userId = selectedUser._id;
+    setIsChangingPassword(userId);
+    try {
+      const response = await apiService.changeUserPassword(userId, newPassword);
+      if (response.success) {
+        toast.success(response.message || `Password updated for ${selectedUser.username}`);
+        setShowPasswordModal(false);
+        setSelectedUser(null);
+      } else {
+        toast.error(response.message || 'Failed to change password');
+      }
+    } catch (error: any) {
+      console.warn('Change password failed:', error);
+      toast.error(error?.message || 'Failed to change password');
+    } finally {
+      setIsChangingPassword(null);
+    }
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -113,16 +141,27 @@ const UserManagement: React.FC = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h1>
         </div>
         <button
+          type="button"
           onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2 text-sm"
+          disabled={isCreatingUser}
+          className={`bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+            isCreatingUser ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
+          }`}
+          aria-busy={isCreatingUser}
         >
-          <Plus className="w-4 h-4" />
-          Create New User
+          {isCreatingUser ? (
+            <span>Creating...</span>
+          ) : (
+            <>
+              <Plus className="w-4 h-4" />
+              <span>Create New User</span>
+            </>
+          )}
         </button>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64">
+      {isLoadingUsers ? (
+        <div className="flex items-center justify-center h-64" aria-busy="true" aria-live="polite">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       ) : (
@@ -134,13 +173,14 @@ const UserManagement: React.FC = () => {
                 <p className="text-xs sm:text-sm text-gray-600">Manage user accounts and permissions</p>
               </div>
 
-              {/* NEW: Role filter control */}
-              <div className="flex items-center gap-2">
+              {/* Role filter control */}
+              <div className="flex items-center gap-2" role="group" aria-label="Filter by role">
                 {roleFilters.map((rf) => {
                   const isActive = rf === roleFilter;
                   return (
                     <button
                       key={rf}
+                      type="button"
                       onClick={() => setRoleFilter(rf)}
                       className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
                         isActive
@@ -194,23 +234,28 @@ const UserManagement: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${roleBadgeClass(u.role)}`}
-                        >
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${roleBadgeClass(u.role)}`}>
                           {u.role}
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {u.role !== 'Admin' && (
                           <button
+                            type="button"
                             onClick={() => {
                               setSelectedUser(u);
                               setShowPasswordModal(true);
                             }}
-                            className="text-blue-600 hover:text-blue-900 flex items-center gap-1 text-sm"
+                            disabled={isChangingPassword === u._id}
+                            className={`flex items-center gap-1 text-sm ${
+                              isChangingPassword === u._id
+                                ? 'text-gray-400 cursor-wait'
+                                : 'text-blue-600 hover:text-blue-900'
+                            }`}
+                            aria-busy={isChangingPassword === u._id}
                           >
                             <Key className="w-4 h-4" />
-                            Change Password
+                            <span>{isChangingPassword === u._id ? 'Updating...' : 'Change Password'}</span>
                           </button>
                         )}
                       </td>
@@ -234,7 +279,12 @@ const UserManagement: React.FC = () => {
       </div>
 
       {showCreateModal && (
-        <CreateUserModal onConfirm={handleCreateUser} onClose={() => setShowCreateModal(false)} existingUsers={users} />
+        <CreateUserModal
+          onConfirm={handleCreateUser}
+          onClose={() => setShowCreateModal(false)}
+          existingUsers={users}
+          isLoading={isCreatingUser}
+        />
       )}
 
       {showPasswordModal && selectedUser && (
@@ -245,6 +295,7 @@ const UserManagement: React.FC = () => {
             setShowPasswordModal(false);
             setSelectedUser(null);
           }}
+           isLoading={isChangingPassword === selectedUser._id}
         />
       )}
     </div>

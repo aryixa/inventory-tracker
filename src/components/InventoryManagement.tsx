@@ -1,4 +1,3 @@
-// src/components/InventoryManagement.tsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Package, Plus, Minus, Search, RefreshCw } from 'lucide-react';
 import { InventoryItem } from '../types';
@@ -74,11 +73,8 @@ const InventoryManagement: React.FC = () => {
     if (!socket || !user) return;
 
     const onCreated = (created: InventoryItem) => {
-    // A new item is a new item; no need to check for existing ID
     setItems(prev => {
-        // Just add the new item to the beginning of the list
         const next = [created, ...prev];
-        // Now, apply the search filter to the new list
         return next.filter(i => matchesSearch(i, searchTerm));
     });
 };

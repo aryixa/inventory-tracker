@@ -1,223 +1,221 @@
 // src/services/api.ts
 import {
-  User,
-  AuthCredentials,
-  ApiResponse,
-  InventoryTransactionInput,
-  InventoryItem,
-  Transaction,
-  CheckAdminResponse,
-  NewInventoryItemInput,
-  TransactionStats,
-  AdminCreateUserInput,
+  User,
+  AuthCredentials,
+  ApiResponse,
+  InventoryTransactionInput,
+  InventoryItem,
+  Transaction,
+  CheckAdminResponse,
+  NewInventoryItemInput,
+  TransactionStats,
+  AdminCreateUserInput,
 } from "../types";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-class ApiError extends Error {
-  status: number;
-  data: any;
-  url: string;
-  constructor(message: string, status: number, data: any, url: string) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.data = data;
-    this.url = url;
-  }
+export class ApiError extends Error {
+  status: number;
+  data: any;
+  url: string;
+  constructor(message: string, status: number, data: any, url: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.data = data;
+    this.url = url;
+  }
 }
 
 class ApiService {
-  private baseURL: string;
-  private _unauthorizedHandler: (() => void) | null = null;
+  private baseURL: string;
+  private _unauthorizedHandler: (() => void) | null = null;
 
-  constructor() {
-    this.baseURL = API_BASE_URL;
-  }
+  constructor() {
+    this.baseURL = API_BASE_URL;
+  }
 
-  public setUnauthorizedHandler(handler: () => void) {
-    this._unauthorizedHandler = handler;
-  }
+  public setUnauthorizedHandler(handler: () => void) {
+    this._unauthorizedHandler = handler;
+  }
 
-  async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}${endpoint}`;
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    const url = `${this.baseURL}${endpoint}`;
 
-    const { headers: optHeaders, ...rest } = options;
-    const config: RequestInit = {
-      credentials: "include",
-      mode: "cors",
-      ...rest,
-      headers: {
-        "Content-Type": "application/json",
-        ...(optHeaders as Record<string, string>),
-      },
-    };
+    const { headers: optHeaders, body, ...rest } = options;
+    const hasBody = body !== undefined && body !== null;
+    const defaultHeaders: Record<string, string> = hasBody ? { "Content-Type": "application/json" } : {};
+    const config: RequestInit = {
+      credentials: "include",
+      mode: "cors",
+      ...rest,
+      body,
+      headers: {
+        ...defaultHeaders,
+        ...(optHeaders as Record<string, string>),
+      },
+    };
 
-    try {
-      const response = await fetch(url, config);
+    try {
+      const response = await fetch(url, config);
 
-      // Try parse JSON; allow empty
-      let parsed: any = null;
-      try {
-        parsed = await response.json();
-      } catch {
-        parsed = null;
-      }
+      // Try parse JSON; allow empty
+      let parsed: any = null;
+      try {
+        parsed = await response.json();
+      } catch {
+        parsed = null;
+      }
 
-      if (!response.ok) {
-        // Global check for unauthorized access due to token expiration
-        if (response.status === 401 && parsed?.code === 'TOKEN_EXPIRED') {
-          if (this._unauthorizedHandler) {
-            this._unauthorizedHandler();
-          }
-          // Propagate the error so the calling function can still handle it
-          // but the global action has already been taken.
-          throw new ApiError(parsed?.message || response.statusText, response.status, parsed, url);
-        }
+      if (!response.ok) {
+        // Global check for unauthorized access due to token expiration
+        if (response.status === 401 && parsed?.code === "TOKEN_EXPIRED") {
+          if (this._unauthorizedHandler) {
+            this._unauthorizedHandler();
+          }
+          // Propagate the error so the calling function can still handle it.
+          throw new ApiError(parsed?.message || response.statusText, response.status, parsed, url);
+        }
 
-        const message = parsed?.message || response.statusText || "API request failed";
-        throw new ApiError(message, response.status, parsed, url);
-      }
+        const message = parsed?.message || response.statusText || "API request failed";
+        throw new ApiError(message, response.status, parsed, url);
+      }
 
-      if (
-        parsed &&
-        typeof parsed === "object" &&
-        ("success" in parsed || "data" in parsed || "message" in parsed)
-      ) {
-        return parsed as ApiResponse<T>;
-      }
-      return { success: true, data: parsed as T } as ApiResponse<T>;
-    } catch (error) {
-      console.debug("API request error:", error);
-      throw error;
-    }
-  }
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        ("success" in parsed || "data" in parsed || "message" in parsed)
+      ) {
+        return parsed as ApiResponse<T>;
+      }
+      return { success: true, data: parsed as T } as ApiResponse<T>;
+    } catch (error: any) {
+      // No console logging here — let callers decide.
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      if (error?.name === "AbortError") {
+        throw error;
+      }
+      const message = error?.message || "Network error";
+      throw new ApiError(message, error?.status ?? 0, error?.data ?? null, url);
+    }
+  }
 
-  async downloadRequest(endpoint: string, filename: string): Promise<Blob> {
-    const url = `${this.baseURL}${endpoint}`;
-    const response = await fetch(url, {
-      credentials: "include",
-      mode: "cors",
-    });
+  async downloadRequest(endpoint: string, filename: string): Promise<Blob> {
+    const url = `${this.baseURL}${endpoint}`;
+    const response = await fetch(url, {
+      credentials: "include",
+      mode: "cors",
+    });
 
-    // The primary `request` method does not handle blob responses, so we must
-    // perform a separate 401 check here.
-    if (!response.ok) {
-      // We cannot parse a blob response as JSON, so we rely on the status code alone.
-      if (response.status === 401) {
-        if (this._unauthorizedHandler) {
-          this._unauthorizedHandler();
-        }
-      }
-      throw new Error(`Failed to download file from ${endpoint}`);
-    }
+    // The primary `request` method does not handle blob responses, so we must
+    // perform a separate 401 check here.
+    if (!response.ok) {
+      if (response.status === 401) {
+        if (this._unauthorizedHandler) {
+          this._unauthorizedHandler();
+        }
+      }
+      throw new Error(`Failed to download file from ${endpoint}`);
+    }
 
-    const blob = await response.blob();
-    return blob;
-  }
+    const blob = await response.blob();
+    return blob;
+  }
 
-  // --- Auth methods ---
-  async login(credentials: AuthCredentials): Promise<ApiResponse<null>> {
-    return this.request<null>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify(credentials),
-    });
-  }
+  // --- Auth methods ---
+  async login(credentials: AuthCredentials): Promise<ApiResponse<null>> {
+    return this.request<null>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+  }
 
-  async register(userData: AuthCredentials): Promise<ApiResponse<User>> {
-    return this.request<User>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify(userData),
-    });
-  }
+  async register(userData: AuthCredentials): Promise<ApiResponse<User>> {
+    return this.request<User>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+  }
 
-  async logout(): Promise<ApiResponse<null>> {
-    return this.request<null>("/auth/logout", { method: "POST" });
-  }
+  async logout(): Promise<ApiResponse<null>> {
+    return this.request<null>("/auth/logout", { method: "POST" });
+  }
 
-  async getMe(): Promise<ApiResponse<User>> {
-    return this.request<User>("/auth/me");
-  }
+  async getMe(): Promise<ApiResponse<User>> {
+    return this.request<User>("/auth/me");
+  }
 
-  async checkAdmin(): Promise<ApiResponse<CheckAdminResponse>> {
-    return this.request<CheckAdminResponse>("/auth/check-admin");
-  }
+  async checkAdmin(): Promise<ApiResponse<CheckAdminResponse>> {
+    return this.request<CheckAdminResponse>("/auth/check-admin");
+  }
 
-  // --- User methods ---
-  async getUsers(): Promise<ApiResponse<User[]>> {
-    return this.request<User[]>("/users");
-  }
+  // --- User methods ---
+  async getUsers(): Promise<ApiResponse<User[]>> {
+    return this.request<User[]>("/users");
+  }
 
-  // Role-aware admin create user (User | Viewer)
-  async createUser(userData: AdminCreateUserInput): Promise<ApiResponse<User>> {
-    return this.request<User>("/users", {
-      method: "POST",
-      body: JSON.stringify(userData),
-    });
-  }
+  // Role-aware admin create user (User | Viewer)
+  async createUser(userData: AdminCreateUserInput): Promise<ApiResponse<User>> {
+    return this.request<User>("/users", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+  }
 
-  async changeUserPassword(
-    userId: string,
-    newPassword: string
-  ): Promise<ApiResponse<null>> {
-    return this.request<null>(`/users/${userId}/password`, {
-      method: "PUT",
-      body: JSON.stringify({ newPassword }),
-    });
-  }
+  async changeUserPassword(userId: string, newPassword: string): Promise<ApiResponse<null>> {
+    return this.request<null>(`/users/${userId}/password`, {
+      method: "PUT",
+      body: JSON.stringify({ newPassword }),
+    });
+  }
 
-  // --- Inventory methods ---
-  async getInventoryItems(
-    params: Record<string, any> = {}
-  ): Promise<ApiResponse<InventoryItem[]>> {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request<InventoryItem[]>(
-      `/inventory${queryString ? `?${queryString}` : ""}`
-    );
-  }
+  // --- Inventory methods ---
+  async getInventoryItems(params: Record<string, any> = {}): Promise<ApiResponse<InventoryItem[]>> {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request<InventoryItem[]>(
+      `/inventory${queryString ? `?${queryString}` : ""}`
+    );
+  }
 
-  async createInventoryItem(
-    itemData: NewInventoryItemInput
-  ): Promise<ApiResponse<InventoryItem>> {
-    return this.request<InventoryItem>("/inventory", {
-      method: "POST",
-      body: JSON.stringify(itemData),
-    });
-  }
+  async createInventoryItem(itemData: NewInventoryItemInput): Promise<ApiResponse<InventoryItem>> {
+    return this.request<InventoryItem>("/inventory", {
+      method: "POST",
+      body: JSON.stringify(itemData),
+    });
+  }
 
-  async updateInventoryQuantity(
-    item_id: string,
-    transactionData: InventoryTransactionInput
-  ): Promise<ApiResponse<Transaction>> {
-    return this.request<Transaction>(`/inventory/${item_id}/quantity`, {
-      method: "PUT",
-      body: JSON.stringify(transactionData),
-    });
-  }
+  async updateInventoryQuantity(
+    item_id: string,
+    transactionData: InventoryTransactionInput
+  ): Promise<ApiResponse<Transaction>> {
+    return this.request<Transaction>(`/inventory/${item_id}/quantity`, {
+      method: "PUT",
+      body: JSON.stringify(transactionData),
+    });
+  }
 
-  // --- Export methods ---
-  async exportInventory(): Promise<Blob> {
-    return this.downloadRequest("/export/inventory", "inventory-export.csv");
-  }
+  // --- Export methods ---
+  async exportInventory(): Promise<Blob> {
+    return this.downloadRequest("/export/inventory", "inventory-export.csv");
+  }
 
-  async exportTransactions(): Promise<Blob> {
-    return this.downloadRequest("/export/transactions", "transactions-export.csv");
-  }
+  async exportTransactions(): Promise<Blob> {
+    return this.downloadRequest("/export/transactions", "transactions-export.csv");
+  }
 
-  // --- Transaction methods ---
-  async getTransactions(
-    params: Record<string, any> = {}
-  ): Promise<ApiResponse<Transaction[]>> {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request<Transaction[]>(
-      `/transactions${queryString ? `?${queryString}` : ""}`
-    );
-  }
+  // --- Transaction methods ---
+  async getTransactions(params: Record<string, any> = {}): Promise<ApiResponse<Transaction[]>> {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request<Transaction[]>(
+      `/transactions${queryString ? `?${queryString}` : ""}`
+    );
+  }
 
-  async getTransactionStats(): Promise<ApiResponse<TransactionStats>> {
-    return this.request<TransactionStats>("/transactions/stats");
-  }
+  async getTransactionStats(): Promise<ApiResponse<TransactionStats>> {
+    return this.request<TransactionStats>("/transactions/stats");
+  }
 }
 
 export default new ApiService();

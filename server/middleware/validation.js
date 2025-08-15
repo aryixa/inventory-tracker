@@ -70,9 +70,6 @@ export const validateInventoryItem = [
 
 // Transaction validation rules
 export const validateTransaction = [
-  body('item_id')
-    .isMongoId()
-    .withMessage('Valid item ID is required'),
   body('transactionType')
     .isIn(['addition', 'reduction'])
     .withMessage('Transaction type must be either addition or reduction'),
