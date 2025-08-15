@@ -21,10 +21,10 @@ export function getSocket(): Socket {
 
     // Optional: lightweight diagnostics (safe to keep in prod)
     socket.on('connect_error', (err) => {
-      console.warn('[socket] connect_error:', err.message);
+      
     });
     socket.on('disconnect', (reason) => {
-      console.warn('[socket] disconnect:', reason);
+     
     });
   }
   return socket;

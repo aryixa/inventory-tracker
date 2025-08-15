@@ -7,15 +7,9 @@ let socket: Socket | null = null;
 
 const getSocket = () => {
   if (!socket) {
-    socket = io(import.meta.env.VITE_BACKEND_URL, {
+    socket = io("https://inven-dsfw.onrender.com",{
       withCredentials: true,
       autoConnect: false,
-    });
-    socket.on('connect_error', (err) => {
-      console.warn('[socket] connect_error:', err.message);
-    });
-    socket.on('disconnect', (reason) => {
-      console.warn('[socket] disconnect:', reason);
     });
   }
   return socket;
@@ -53,7 +47,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     } else {
       if (socket) {
         socket.disconnect();
-        console.log('Socket disconnected (no user)');
       }
     }
   }, [user]);
