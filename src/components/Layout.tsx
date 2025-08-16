@@ -17,9 +17,8 @@ const Layout: React.FC = () => {
   const { user, logout, isAdmin, isViewer } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    toast.success('Logged out successfully');
+  const handleLogout = async () => {
+    await logout();          
     navigate('/login');
   };
 
