@@ -1,18 +1,38 @@
+// server/routes/transactions.js
 import express from 'express';
 import {
   getTransactions,
   getTransaction,
   getTransactionStats
 } from '../controllers/transactionController.js';
-import { protect } from '../middleware/auth.js';
+import { protect, authorize } from '../middleware/auth.js';
 import { validateMongoIdParam } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// All routes require authentication
+// All transaction routes require authentication
 router.use(protect);
 
-router.get('/', getTransactions);
-router.get('/stats', getTransactionStats);
-router.get('/:id', validateMongoIdParam, getTransaction);
+// List all transactions — adjust roles as needed
+router.get(
+  '/',
+  authorize('Admin', 'User', 'Viewer'),
+  getTransactions
+);
+
+// Stats endpoint — typically admin‑only
+router.get(
+  '/stats',
+  authorize('Admin'),
+  getTransactionStats
+);
+
+// Single transaction by ID
+router.get(
+  '/:id',
+  authorize('Admin', 'User', 'Viewer'),
+  validateMongoIdParam,
+  getTransaction
+);
+
 export default router;

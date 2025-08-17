@@ -1,3 +1,4 @@
+//server\middleware\validation.js
 import { body, validationResult, param } from 'express-validator';
 
 // Handles validation errors and sends a consistent, structured response
@@ -19,7 +20,8 @@ export const handleValidationErrors = (req, res, next) => {
 // Reusable rules for a secure password policy
 const passwordComplexityRules = [
   body('password')
-    .isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long')
 ];
 
 // Reusable validator for ID parameters in the URL
@@ -33,7 +35,8 @@ export const validateMongoIdParam = [
 // User validation rules
 export const validateUserRegistration = [
   body('username')
-    .isLength({ min: 3, max: 30 }).withMessage('Username must be between 3 and 30 characters long'),
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters long'),
   ...passwordComplexityRules,
   handleValidationErrors,
 ];
@@ -51,20 +54,38 @@ export const validateUserLogin = [
 
 // Password change validation
 export const validatePasswordChange = [
-  body('newPassword')
-    .isLength({ min: 5 })
-    .withMessage('New password must be at least 5 characters long'),
-  handleValidationErrors,
-
+  body('newPassword')
+    .isLength({ min: 5 })
+    .withMessage('New password must be at least 5 characters long'),
+  handleValidationErrors,
 ];
 
-// Inventory item validation rules
+// Inventory item validation rules — canonical schema
 export const validateInventoryItem = [
-  body('thickness').trim().notEmpty().withMessage('Thickness is required').isLength({ max: 50 }).withMessage('Thickness cannot exceed 50 characters'),
-  body('sheetSize').trim().notEmpty().withMessage('Sheet size is required').isLength({ max: 50 }).withMessage('Sheet size cannot exceed 50 characters'),
-  body('brand').trim().notEmpty().withMessage('Brand is required').isLength({ max: 100 }).withMessage('Brand cannot exceed 100 characters'),
-  body('type').trim().notEmpty().withMessage('Type is required').isLength({ max: 100 }).withMessage('Type cannot exceed 100 characters'),
-  body('initialQuantity').isInt({ min: 0 }).withMessage('Initial quantity must be a non-negative integer'),
+  body('thicknessMm')
+    .isFloat({ gt: 0 })
+    .withMessage('thicknessMm must be a positive number (mm)'),
+  body('sheetLengthMm')
+    .isFloat({ gt: 0 })
+    .withMessage('sheetLengthMm must be a positive number (mm)'),
+  body('sheetWidthMm')
+    .isFloat({ gt: 0 })
+    .withMessage('sheetWidthMm must be a positive number (mm)'),
+  body('brand')
+    .trim()
+    .notEmpty()
+    .withMessage('Brand is required')
+    .isLength({ max: 100 })
+    .withMessage('Brand cannot exceed 100 characters'),
+  body('type')
+    .trim()
+    .notEmpty()
+    .withMessage('Type is required')
+    .isLength({ max: 100 })
+    .withMessage('Type cannot exceed 100 characters'),
+  body('initialQuantity')
+    .isInt({ min: 0 })
+    .withMessage('Initial quantity must be a non-negative integer'),
   handleValidationErrors,
 ];
 
@@ -91,7 +112,8 @@ export const validateTransaction = [
 // Admin user creation validation rules
 export const validateAdminUserCreation = [
   body('username')
-    .isLength({ min: 3, max: 30 }).withMessage('Username must be between 3 and 30 characters long'),
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters long'),
   ...passwordComplexityRules,
   body('role')
     .optional()

@@ -5,14 +5,13 @@ import asyncHandler from 'express-async-handler';
 
 const cookieName = process.env.JWT_COOKIE_NAME || 'token';
 
-// Generate JWT (id only; role is loaded from DB in protect)
+
 const generateToken = (id) => {
-  // Use a sane default if env is too small for dev (e.g., "30s")
+
   const expiresIn = process.env.JWT_EXPIRE || '15m';
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn });
 };
 
-// Prefer maxAge to avoid clock drift; accept either env var name
 const getCookieMaxAgeMs = () => {
   const v =
     process.env.JWT_COOKIE_EXPIRE_MS ??
@@ -26,14 +25,14 @@ const buildCookieOptions = () => {
   return {
     maxAge: getCookieMaxAgeMs(),
     httpOnly: true,
-    secure: isProd,                    // secure cookies in production
-    sameSite: isProd ? 'none' : 'lax', // dev: lax is fine for localhost:5173 -> 5000
-    // path, domain defaults are fine for localhost
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/',
   };
 };
 
-const setTokenCookie = (res, token) => {
-  const options = buildCookieOptions();
+const setTokenCookie = (req, res, token) => {
+  const options = buildCookieOptions(req);
   res.cookie(cookieName, token, options);
 };
 
@@ -103,12 +102,12 @@ const login = asyncHandler(async (req, res) => {
   }
 
   const token = generateToken(user._id);
-  setTokenCookie(res, token);
+  setTokenCookie(req, res, token);
 
   res.status(200).json({
     success: true,
     message: 'Login successful',
-    user: {
+    data: {
       id: user._id,
       username: user.username,
       role: user.role,
@@ -126,6 +125,8 @@ const logout = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
+    path: '/',
+    expires: new Date(0),
   };
   res.cookie(cookieName, '', options);
   res.status(200).json({ success: true, message: 'Logged out successfully' });

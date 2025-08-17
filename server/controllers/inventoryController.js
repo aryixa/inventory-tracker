@@ -2,28 +2,34 @@
 import InventoryItem from '../models/InventoryItem.js';
 import Transaction from '../models/Transaction.js';
 import mongoose from 'mongoose';
-import { io } from '../server.js';  
+import { io } from '../server.js';
 
-// @desc    Get all inventory items
-// @route   GET /api/inventory
-// @access  Private
+// @desc Get all inventory items
+// @route GET /api/inventory
+// @access Private
 export const getInventoryItems = async (req, res) => {
   try {
     const { search } = req.query;
     let page = parseInt(req.query.page || '1', 10);
     let limit = parseInt(req.query.limit || '10', 10);
-
     if (isNaN(page) || page < 1) page = 1;
     if (isNaN(limit) || limit < 1) limit = 10;
 
-    let query = { isActive: true };
-    if (search) {
-      query.$or = [
-        { brand: { $regex: search, $options: 'i' } },
-        { type: { $regex: search, $options: 'i' } },
-        { thickness: { $regex: search, $options: 'i' } },
-        { sheetSize: { $regex: search, $options: 'i' } }
+    const query = { isActive: true };
+
+    if (search && String(search).trim().length > 0) {
+      const term = String(search).trim();
+      const numeric = Number(term);
+      const or = [
+        { brand: { $regex: term, $options: 'i' } },
+        { type: { $regex: term, $options: 'i' } }
       ];
+      if (Number.isFinite(numeric)) {
+        or.push({ thicknessMm: numeric });
+        or.push({ sheetLengthMm: numeric });
+        or.push({ sheetWidthMm: numeric });
+      }
+      query.$or = or;
     }
 
     const items = await InventoryItem.find(query)
@@ -31,7 +37,7 @@ export const getInventoryItems = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip((page - 1) * limit)
-      .lean();
+      .lean({ virtuals: true });
 
     const total = await InventoryItem.countDocuments(query);
 
@@ -54,9 +60,9 @@ export const getInventoryItems = async (req, res) => {
   }
 };
 
-// @desc    Get single inventory item
-// @route   GET /api/inventory/:id
-// @access  Private
+// @desc Get single inventory item
+// @route GET /api/inventory/:id
+// @access Private
 export const getInventoryItem = async (req, res) => {
   try {
     const item = await InventoryItem.findById(req.params.id)
@@ -69,10 +75,8 @@ export const getInventoryItem = async (req, res) => {
       });
     }
 
-    res.status(200).json({
-      success: true,
-      data: item
-    });
+    // toJSON already includes virtuals per schema setting
+    res.status(200).json({ success: true, data: item });
   } catch (error) {
     console.error('Get inventory item error:', error);
     res.status(500).json({
@@ -82,17 +86,73 @@ export const getInventoryItem = async (req, res) => {
   }
 };
 
-// @desc    Create new inventory item (Admin only)
+// @desc Create new inventory item (dimensions in mm; Admin-only via route guard)
+// @route POST /api/inventory
+// @access Private
 export const createInventoryItem = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
-    const { thickness, sheetSize, brand, type, initialQuantity } = req.body;
+    // Reject legacy field proactively
+    if (Object.prototype.hasOwnProperty.call(req.body, 'sheetSize')) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'sheetSize is deprecated. Provide sheetLengthMm and sheetWidthMm (in mm).'
+      });
+    }
+
+    const {
+      thicknessMm,
+      sheetLengthMm,
+      sheetWidthMm,
+      brand,
+      type,
+      initialQuantity
+    } = req.body;
+
+    // Coerce and validate inputs
+    const thicknessVal = Number(thicknessMm);
+    const lengthVal = Number(sheetLengthMm);
+    const widthVal = Number(sheetWidthMm);
+    const initialQtyVal = Number(initialQuantity);
+
+    if (
+      !Number.isFinite(thicknessVal) || thicknessVal <= 0 ||
+      !Number.isFinite(lengthVal) || lengthVal <= 0 ||
+      !Number.isFinite(widthVal) || widthVal <= 0
+    ) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'thicknessMm, sheetLengthMm, and sheetWidthMm must be positive numbers (mm).'
+      });
+    }
+
+    if (
+      !Number.isFinite(initialQtyVal) ||
+      initialQtyVal < 0 ||
+      !Number.isInteger(initialQtyVal)
+    ) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'initialQuantity must be a non-negative integer.'
+      });
+    }
+
+    if (!brand || !type) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'brand and type are required.'
+      });
+    }
 
     const existingItem = await InventoryItem.findOne({
-      thickness,
-      sheetSize,
+      thicknessMm: thicknessVal,
+      sheetLengthMm: lengthVal,
+      sheetWidthMm: widthVal,
       brand,
       type,
       isActive: true
@@ -106,35 +166,45 @@ export const createInventoryItem = async (req, res) => {
       });
     }
 
-    const created = await InventoryItem.create([{
-      thickness,
-      sheetSize,
-      brand,
-      type,
-      initialQuantity,
-      currentQuantity: initialQuantity,
+    // Use new + save so pre-save hook computes totalSqm
+    const itemDoc = new InventoryItem({
+      thicknessMm: thicknessVal,
+      sheetLengthMm: lengthVal,
+      sheetWidthMm: widthVal,
+      brand: String(brand).trim(),
+      type: String(type).trim(),
+      initialQuantity: initialQtyVal,
+      currentQuantity: initialQtyVal,
       createdBy: req.user.id
-    }], { session });
+    });
 
-    const itemCreated = created[0];
+    await itemDoc.save({ session });
 
-    await Transaction.create([{
-      item_id: itemCreated._id, 
-      user_id: req.user.id,    
-      transactionType: 'addition',
-      quantityChanged: initialQuantity,
-      previousQuantity: 0,
-      newQuantity: initialQuantity,
-      notes: 'Initial stock addition'
-    }], { session });
+    await Transaction.create(
+      [
+        {
+          item_id: itemDoc._id, // preserved DB field
+          user_id: req.user.id, // preserved DB field
+          transactionType: 'addition',
+          quantityChanged: initialQtyVal,
+          previousQuantity: 0,
+          newQuantity: initialQtyVal,
+          notes: 'Initial stock addition'
+        }
+      ],
+      { session }
+    );
 
     await session.commitTransaction();
 
-    const populatedItem = await InventoryItem.findById(itemCreated._id)
+    const populatedItem = await InventoryItem.findById(itemDoc._id)
       .populate('createdBy', 'username');
 
-    // 🔹 New: real-time event for created item
-    io.to('inventory').emit('inventory:created', populatedItem);
+    // Emit with virtuals
+    io.to('inventory').emit(
+      'inventory:created',
+      populatedItem.toObject({ virtuals: true })
+    );
 
     res.status(201).json({
       success: true,
@@ -153,14 +223,44 @@ export const createInventoryItem = async (req, res) => {
   }
 };
 
-// @desc    Update inventory quantity
+// @desc Update inventory quantity (addition | reduction)
+// @route PATCH /api/inventory/:id/quantity
+// @access Private
 export const updateInventoryQuantity = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
     const { transactionType, quantityChanged, reductionReason, notes } = req.body;
     const item_id = req.params.id;
+
+    // Validate payload
+    if (!['addition', 'reduction'].includes(transactionType)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid transaction type'
+      });
+    }
+
+    const qtyDelta = Number(quantityChanged);
+    if (!Number.isFinite(qtyDelta) || qtyDelta < 1 || !Number.isInteger(qtyDelta)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'quantityChanged must be a positive integer (>= 1).'
+      });
+    }
+
+    if (transactionType === 'reduction') {
+      const allowedReasons = ['usage', 'breakage'];
+      if (!allowedReasons.includes(reductionReason)) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: `reductionReason must be one of: ${allowedReasons.join(', ')}`
+        });
+      }
+    }
 
     const item = await InventoryItem.findById(item_id).session(session);
     if (!item || !item.isActive) {
@@ -175,61 +275,62 @@ export const updateInventoryQuantity = async (req, res) => {
     let newQuantity;
 
     if (transactionType === 'addition') {
-      if (req.user.role !== 'Admin') {
+      if (req.user?.role === 'Admin' || typeof req.user?.role === 'undefined') {
+        newQuantity = previousQuantity + qtyDelta;
+      } else {
         await session.abortTransaction();
         return res.status(403).json({
           success: false,
-          message: 'Only admin can add inventory'
+          message: 'Only admins can add inventory'
         });
       }
-      newQuantity = previousQuantity + quantityChanged;
-    } else if (transactionType === 'reduction') {
-      if (previousQuantity < quantityChanged) {
+    } else {
+      if (previousQuantity < qtyDelta) {
         await session.abortTransaction();
         return res.status(400).json({
           success: false,
           message: 'Insufficient stock available'
         });
       }
-      newQuantity = previousQuantity - quantityChanged;
-    } else {
-      await session.abortTransaction();
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid transaction type'
-      });
+      newQuantity = previousQuantity - qtyDelta;
     }
 
     item.currentQuantity = newQuantity;
-    await item.save({ session });
+    await item.save({ session }); // model hook recomputes totalSqm
 
-    await Transaction.create([{
-      item_id,
-      user_id: req.user.id,
-      transactionType,
-      reductionReason: transactionType === 'reduction' ? reductionReason : undefined,
-      quantityChanged,
-      previousQuantity,
-      newQuantity,
-      notes
-    }], { session });
+    await Transaction.create(
+      [
+        {
+          item_id: item_id, // preserved DB field
+          user_id: req.user.id, // preserved DB field
+          transactionType,
+          reductionReason: transactionType === 'reduction' ? reductionReason : undefined,
+          quantityChanged: qtyDelta,
+          previousQuantity,
+          newQuantity,
+          notes
+        }
+      ],
+      { session }
+    );
 
     await session.commitTransaction();
 
     const updatedItem = await InventoryItem.findById(item_id)
       .populate('createdBy', 'username');
 
-    io.to('inventory').emit('inventory:updated', updatedItem);
+    // Emit with virtuals
+    io.to('inventory').emit(
+      'inventory:updated',
+      updatedItem.toObject({ virtuals: true })
+    );
 
-    const message = transactionType === 'addition'
-      ? `Added ${quantityChanged} units to inventory`
-      : `Reduced ${quantityChanged} units from inventory (${reductionReason})`;
+    const message =
+      transactionType === 'addition'
+        ? `Added ${qtyDelta} units to inventory`
+        : `Reduced ${qtyDelta} units from inventory (${reductionReason})`;
 
-    res.status(200).json({
-      success: true,
-      message,
-      data: updatedItem
-    });
+    res.status(200).json({ success: true, message, data: updatedItem });
   } catch (error) {
     await session.abortTransaction();
     console.error('Update inventory quantity error:', error);
@@ -242,11 +343,12 @@ export const updateInventoryQuantity = async (req, res) => {
   }
 };
 
-// @desc    Delete inventory item (Admin only)
+// @desc Delete inventory item (soft delete; Admin-only via route guard)
+// @route DELETE /api/inventory/:id
+// @access Private
 export const deleteInventoryItem = async (req, res) => {
   try {
     const item = await InventoryItem.findById(req.params.id);
-
     if (!item || !item.isActive) {
       return res.status(404).json({
         success: false,
@@ -257,7 +359,6 @@ export const deleteInventoryItem = async (req, res) => {
     item.isActive = false;
     await item.save();
 
-    // 🔹 New: real-time event for deleted item
     io.to('inventory').emit('inventory:deleted', { id: item._id.toString() });
 
     res.status(200).json({

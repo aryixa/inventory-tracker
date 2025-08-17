@@ -1,16 +1,21 @@
-//server\models\InventoryItem.js
+// server/models/InventoryItem.js
 import mongoose from 'mongoose';
 
 const inventoryItemSchema = new mongoose.Schema({
-  thickness: {
-    type: String,
-    required: [true, 'Thickness is required'],
-    trim: true
+  thicknessMm: {
+    type: Number,
+    required: [true, 'Thickness (mm) is required'],
+    min: [0.1, 'Thickness must be positive']
   },
-  sheetSize: {
-    type: String,
-    required: [true, 'Sheet size is required'],
-    trim: true
+  sheetLengthMm: {
+    type: Number,
+    required: [true, 'Sheet length (mm) is required'],
+    min: [1, 'Length must be positive']
+  },
+  sheetWidthMm: {
+    type: Number,
+    required: [true, 'Sheet width (mm) is required'],
+    min: [1, 'Width must be positive']
   },
   brand: {
     type: String,
@@ -32,6 +37,11 @@ const inventoryItemSchema = new mongoose.Schema({
     required: [true, 'Current quantity is required'],
     min: [0, 'Current quantity cannot be negative']
   },
+  totalSqm: {
+    type: Number,
+    
+    min: [0, 'Total sqm cannot be negative']
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -45,15 +55,34 @@ const inventoryItemSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Create compound index for better query performance
-inventoryItemSchema.index({ brand: 1, type: 1, thickness: 1, sheetSize: 1 });
+inventoryItemSchema.index(
+  { brand: 1, type: 1, thicknessMm: 1, sheetLengthMm: 1, sheetWidthMm: 1 }
+);
 
-// Virtual for item display name
-inventoryItemSchema.virtual('displayName').get(function() {
-  return `${this.brand} - ${this.thickness} - ${this.sheetSize} - ${this.type}`;
+
+inventoryItemSchema.virtual('areaSqmPerUnit').get(function() {
+  if (this.sheetLengthMm && this.sheetWidthMm) {
+    return (this.sheetLengthMm * this.sheetWidthMm) / 1_000_000;
+  }
+  return 0;
 });
 
-// Ensure virtual fields are serialized
+/**
+ * Display name now uses mm dimensions
+ */
+inventoryItemSchema.virtual('displayName').get(function() {
+  return `${this.brand} - ${this.thicknessMm}mm - ${this.sheetLengthMm}x${this.sheetWidthMm}mm - ${this.type}`;
+});
+
 inventoryItemSchema.set('toJSON', { virtuals: true });
+
+/**
+ * Pre-save hook — recompute totalSqm if currentQuantity or dimensions change
+ * (Length/width are fixed after creation by controller validation)
+ */
+inventoryItemSchema.pre('save', function(next) {
+  this.totalSqm = this.areaSqmPerUnit * this.currentQuantity;
+  next();
+});
 
 export default mongoose.model('InventoryItem', inventoryItemSchema);

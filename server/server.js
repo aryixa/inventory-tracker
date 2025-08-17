@@ -68,15 +68,10 @@ const buildAllowedOrigins = () => {
   // Dev defaults (local dev)
   if (process.env.NODE_ENV !== 'production') {
     set.add('http://localhost:5173');
-    set.add('http://127.0.0.1:5173');
   }
-
-  // Production fallback (avoid accidental lockout if env not set)
-  // Note: prefer setting CLIENT_URLS on the platform; keep this as a safety net.
   if (process.env.NODE_ENV === 'production' && set.size === 0) {
     set.add('https://silver-jellyfish-497679.hostingersite.com');
   }
-
   return Array.from(set);
 };
 

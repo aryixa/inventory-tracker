@@ -15,7 +15,6 @@ export function initSocket(httpServer, allowedOrigins) {
     path: '/socket.io',
   });
 
-  // Engine-level connection errors (CORS/protocol/etc.)
   io.engine.on('connection_error', (err) => {
     console.warn('[io.engine] connection_error:', {
       code: err.code,

@@ -25,12 +25,15 @@ export const protect = async (req, res, next) => {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
-        res.cookie(cookieName, '', {
-          expires: new Date(0),
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-        });
+        const isProd = process.env.NODE_ENV === 'production';
+res.cookie(cookieName, '', {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? 'none' : 'lax',
+  path: '/',
+  expires: new Date(0),
+});
+
         return res.status(401).json({
           success: false,
           message: 'Token expired. Please log in again.',

@@ -1,4 +1,4 @@
-//server\models\Transaction.js
+// server/models/Transaction.js
 import mongoose from 'mongoose';
 
 const transactionSchema = new mongoose.Schema({
@@ -49,8 +49,10 @@ const transactionSchema = new mongoose.Schema({
 });
 
 // Create indexes for better query performance
-transactionSchema.index({ itemId: 1, createdAt: -1 });
-transactionSchema.index({ userId: 1, createdAt: -1 });
+transactionSchema.index({ item_id: 1, createdAt: -1 });
+transactionSchema.index({ user_id: 1, createdAt: -1 });
 transactionSchema.index({ transactionType: 1, createdAt: -1 });
+// The createdAt index is implicitly included in the other indexes, but it's good practice
+// to be explicit if it's a primary query field. Your existing indexes are good enough.
 
 export default mongoose.model('Transaction', transactionSchema);
