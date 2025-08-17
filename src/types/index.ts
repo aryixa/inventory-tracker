@@ -1,7 +1,5 @@
 export type Role = 'Admin' | 'User' | 'Viewer';
-
 export type TransactionType = 'addition' | 'reduction';
-
 export type ReductionReason = 'usage' | 'breakage';
 
 // ------------------- AUTH -------------------
@@ -13,14 +11,15 @@ export interface User {
   createdAt: string;
 }
 
-// Consolidated into a single interface for consistency
 export interface AuthCredentials {
   username: string;
   password: string;
 }
+
 export interface AdminCreateUserInput extends AuthCredentials {
   role: Extract<Role, 'User' | 'Viewer'>;
 }
+
 export interface CheckAdminResponse {
   hasAdmin: boolean;
 }
@@ -39,22 +38,25 @@ export interface AuthContextType {
 // ------------------- INVENTORY -------------------
 
 export interface NewInventoryItemInput {
-  thickness: string;
-  sheetSize: string; // Renamed for consistency
+  thicknessMm: number;       // mm
+  sheetLengthMm: number;     // mm
+  sheetWidthMm: number;      // mm
   brand: string;
   type: string;
-  initialQuantity: number; // Renamed for consistency
+  initialQuantity: number;   // whole units
 }
 
 export interface InventoryItem {
   _id: string;
-  thickness: string;
-  sheetSize: string; 
+  thicknessMm: number;
+  sheetLengthMm: number;
+  sheetWidthMm: number;
   brand: string;
   type: string;
-  initialQuantity: number; 
-  currentQuantity: number; 
-  createdBy: { 
+  initialQuantity: number;
+  currentQuantity: number;
+  totalSqm?: number;         // computed & stored on backend
+  createdBy: {
     _id: string;
     username: string;
   };
@@ -64,17 +66,18 @@ export interface InventoryItem {
 }
 
 export interface InventoryTransactionInput {
-  quantityChanged: number; // Renamed for consistency
-  reductionReason?: ReductionReason; // Renamed for consistency
-  transactionType: TransactionType; // Renamed for consistency
+  quantityChanged: number;
+  reductionReason?: ReductionReason;
+  transactionType: TransactionType;
+  notes?: string;
 }
 
 // ------------------- TRANSACTIONS -------------------
 
 export interface Transaction {
   _id: string;
-  item_id?: InventoryItem; // Corrected to match the component's access pattern
-  user_id?: User; // Corrected to match the component's access pattern
+  item_id?: InventoryItem; // keep snake_case for DB schema
+  user_id?: User;          // keep snake_case for DB schema
   transactionType: TransactionType;
   reductionReason?: ReductionReason;
   quantityChanged: number;
@@ -84,16 +87,18 @@ export interface Transaction {
   createdAt: string;
 }
 
-// NEW: Interface for transaction statistics
 export interface TransactionStats {
   totalTransactions: number;
   totalAdditions: number;
   totalReductions: number;
+  totalUsage?: number;
+  totalBreakage?: number;
+  totalQuantityAdded?: number;
+  totalQuantityReduced?: number;
 }
 
 // ------------------- API -------------------
 
-// This is the new, generic, and consistent API response structure
 export interface ApiResponse<T = any> {
   success: boolean;
   message?: string;
@@ -103,4 +108,10 @@ export interface ApiResponse<T = any> {
   total?: number;
   page?: number;
   pages?: number;
+  meta?: {
+    count: number;
+    total: number;
+    page: number;
+    pages: number;
+  };
 }

@@ -63,7 +63,6 @@ const UserManagement: React.FC = () => {
 
       if (response.success && Array.isArray(response.data)) {
         setUsers(response.data);
-        if (showToast) toast.success('Users loaded successfully.');
       } else {
         console.warn('Unexpected user data format from API:', response);
         setUsers([]);
@@ -271,10 +270,8 @@ const UserManagement: React.FC = () => {
       <div className="mt-6 sm:mt-8 bg-blue-50 rounded-lg p-4 sm:p-6">
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">User Management Information</h3>
         <ul className="space-y-2 text-xs sm:text-sm text-blue-700">
-          <li>• New user accounts are created with a secure password you specify</li>
-          <li>• Users should change their password after first login for security</li>
           <li>• Usernames must be unique across the system</li>
-          <li>• Passwords must be at least 6 characters long with mixed case and numbers</li>
+          <li>• Passwords must be at least 6 characters long</li>
         </ul>
       </div>
 

@@ -1,3 +1,4 @@
+// src/components/modals/UseStockModal.tsx
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { InventoryItem } from '../../types';
@@ -14,8 +15,8 @@ const UseStockModal: React.FC<UseStockModalProps> = ({ item, onConfirm, onClose 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const qty = parseInt(quantity);
-    if (qty > 0) {
+    const qty = parseInt(quantity, 10);
+    if (Number.isInteger(qty) && qty > 0) {
       onConfirm(qty, subType);
     }
   };
@@ -37,16 +38,20 @@ const UseStockModal: React.FC<UseStockModalProps> = ({ item, onConfirm, onClose 
           <h4 className="font-medium text-gray-900">{item.brand}</h4>
           <p className="text-sm text-gray-600">{item.type}</p>
           <p className="text-sm text-gray-600">
-            {item.thickness} • {item.sheetSize}
+            {item.thicknessMm} mm • {item.sheetLengthMm} × {item.sheetWidthMm} mm
           </p>
           <p className="text-sm text-gray-600">
-            Current Stock: <span className="font-medium">{item.currentQuantity} units</span>
+            Current Stock:{' '}
+            <span className="font-medium">{item.currentQuantity} units</span>
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="quantity"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Quantity to Use
             </label>
             <input
@@ -56,6 +61,7 @@ const UseStockModal: React.FC<UseStockModalProps> = ({ item, onConfirm, onClose 
               onChange={(e) => setQuantity(e.target.value)}
               min="1"
               max={item.currentQuantity}
+              step="1"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
               autoFocus
@@ -72,7 +78,7 @@ const UseStockModal: React.FC<UseStockModalProps> = ({ item, onConfirm, onClose 
                   type="radio"
                   value="usage"
                   checked={subType === 'usage'}
-                  onChange={(e) => setSubType(e.target.value as 'usage' | 'breakage')}
+                  onChange={() => setSubType('usage')}
                   className="mr-2"
                 />
                 <span className="text-sm">Usage (Normal consumption)</span>
@@ -82,7 +88,7 @@ const UseStockModal: React.FC<UseStockModalProps> = ({ item, onConfirm, onClose 
                   type="radio"
                   value="breakage"
                   checked={subType === 'breakage'}
-                  onChange={(e) => setSubType(e.target.value as 'usage' | 'breakage')}
+                  onChange={() => setSubType('breakage')}
                   className="mr-2"
                 />
                 <span className="text-sm">Breakage (Damaged/Lost)</span>

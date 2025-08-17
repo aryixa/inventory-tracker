@@ -1,4 +1,3 @@
-// src/services/api.ts
 import {
   User,
   AuthCredentials,
@@ -12,7 +11,13 @@ import {
   AdminCreateUserInput,
 } from "../types";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = (() => {
+  // Strip trailing slashes to avoid double-slash URLs
+  const envUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, "");
+  if (envUrl) return envUrl;
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${hostname}:5000/api`;
+})();
 
 export class ApiError extends Error {
   status: number;
@@ -27,24 +32,48 @@ export class ApiError extends Error {
   }
 }
 
+const buildQuery = (params: Record<string, any> = {}) => {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== undefined && v !== null && v !== ""
+  );
+  return new URLSearchParams(entries as [string, string][]).toString();
+};
+
 class ApiService {
   private baseURL: string;
-  private _unauthorizedHandler: (() => void) | null = null;
+  private _unauthorizedHandler: ((code?: string) => void) | null = null;
 
   constructor() {
     this.baseURL = API_BASE_URL;
   }
 
-  public setUnauthorizedHandler(handler: () => void) {
+  public setUnauthorizedHandler(handler: (code?: string) => void) {
     this._unauthorizedHandler = handler;
   }
 
-  async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}${endpoint}`;
+  private handleUnauthorized(parsed: any, status: number) {
+    if (status !== 401) return;
+    this._unauthorizedHandler?.(parsed?.code);
+  }
+
+  private makeUrl(endpoint: string) {
+    return `${this.baseURL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  }
+
+  async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const url = this.makeUrl(endpoint);
 
     const { headers: optHeaders, body, ...rest } = options;
     const hasBody = body !== undefined && body !== null;
-    const defaultHeaders: Record<string, string> = hasBody ? { "Content-Type": "application/json" } : {};
+
+    const defaultHeaders: Record<string, string> = {
+      Accept: "application/json",
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
+    };
+
     const config: RequestInit = {
       credentials: "include",
       mode: "cors",
@@ -59,7 +88,6 @@ class ApiService {
     try {
       const response = await fetch(url, config);
 
-      // Try parse JSON; allow empty
       let parsed: any = null;
       try {
         parsed = await response.json();
@@ -68,16 +96,9 @@ class ApiService {
       }
 
       if (!response.ok) {
-        // Global check for unauthorized access due to token expiration
-        if (response.status === 401 && parsed?.code === "TOKEN_EXPIRED") {
-          if (this._unauthorizedHandler) {
-            this._unauthorizedHandler();
-          }
-          // Propagate the error so the calling function can still handle it.
-          throw new ApiError(parsed?.message || response.statusText, response.status, parsed, url);
-        }
-
-        const message = parsed?.message || response.statusText || "API request failed";
+        this.handleUnauthorized(parsed, response.status);
+        const message =
+          parsed?.message || response.statusText || "API request failed";
         throw new ApiError(message, response.status, parsed, url);
       }
 
@@ -88,9 +109,9 @@ class ApiService {
       ) {
         return parsed as ApiResponse<T>;
       }
+
       return { success: true, data: parsed as T } as ApiResponse<T>;
     } catch (error: any) {
-      // No console logging here — let callers decide.
       if (error instanceof ApiError) {
         throw error;
       }
@@ -102,31 +123,33 @@ class ApiService {
     }
   }
 
-  async downloadRequest(endpoint: string, filename: string): Promise<Blob> {
-    const url = `${this.baseURL}${endpoint}`;
+  async downloadRequest(endpoint: string): Promise<Blob> {
+    const url = this.makeUrl(endpoint);
     const response = await fetch(url, {
       credentials: "include",
       mode: "cors",
     });
 
-    // The primary `request` method does not handle blob responses, so we must
-    // perform a separate 401 check here.
     if (!response.ok) {
-      if (response.status === 401) {
-        if (this._unauthorizedHandler) {
-          this._unauthorizedHandler();
+      let parsed: any = null;
+      try {
+        const ct = response.headers.get("content-type") || "";
+        if (ct.includes("application/json")) {
+          parsed = await response.json();
         }
+      } catch {
+        parsed = null;
       }
-      throw new Error(`Failed to download file from ${endpoint}`);
+      this.handleUnauthorized(parsed, response.status);
+      throw new Error(parsed?.message || `Failed to download file from ${endpoint}`);
     }
 
-    const blob = await response.blob();
-    return blob;
+    return await response.blob();
   }
 
   // --- Auth methods ---
-  async login(credentials: AuthCredentials): Promise<ApiResponse<null>> {
-    return this.request<null>("/auth/login", {
+  async login(credentials: AuthCredentials): Promise<ApiResponse<User>> {
+    return this.request<User>("/auth/login", {
       method: "POST",
       body: JSON.stringify(credentials),
     });
@@ -156,15 +179,19 @@ class ApiService {
     return this.request<User[]>("/users");
   }
 
-  // Role-aware admin create user (User | Viewer)
-  async createUser(userData: AdminCreateUserInput): Promise<ApiResponse<User>> {
+  async createUser(
+    userData: AdminCreateUserInput
+  ): Promise<ApiResponse<User>> {
     return this.request<User>("/users", {
       method: "POST",
       body: JSON.stringify(userData),
     });
   }
 
-  async changeUserPassword(userId: string, newPassword: string): Promise<ApiResponse<null>> {
+  async changeUserPassword(
+    userId: string,
+    newPassword: string
+  ): Promise<ApiResponse<null>> {
     return this.request<null>(`/users/${userId}/password`, {
       method: "PUT",
       body: JSON.stringify({ newPassword }),
@@ -172,14 +199,18 @@ class ApiService {
   }
 
   // --- Inventory methods ---
-  async getInventoryItems(params: Record<string, any> = {}): Promise<ApiResponse<InventoryItem[]>> {
-    const queryString = new URLSearchParams(params).toString();
+  async getInventoryItems(
+    params: Record<string, any> = {}
+  ): Promise<ApiResponse<InventoryItem[]>> {
+    const queryString = buildQuery(params);
     return this.request<InventoryItem[]>(
       `/inventory${queryString ? `?${queryString}` : ""}`
     );
   }
 
-  async createInventoryItem(itemData: NewInventoryItemInput): Promise<ApiResponse<InventoryItem>> {
+  async createInventoryItem(
+    itemData: NewInventoryItemInput
+  ): Promise<ApiResponse<InventoryItem>> {
     return this.request<InventoryItem>("/inventory", {
       method: "POST",
       body: JSON.stringify(itemData),
@@ -198,16 +229,18 @@ class ApiService {
 
   // --- Export methods ---
   async exportInventory(): Promise<Blob> {
-    return this.downloadRequest("/export/inventory", "inventory-export.csv");
+    return this.downloadRequest("/export/inventory");
   }
 
   async exportTransactions(): Promise<Blob> {
-    return this.downloadRequest("/export/transactions", "transactions-export.csv");
+    return this.downloadRequest("/export/transactions");
   }
 
   // --- Transaction methods ---
-  async getTransactions(params: Record<string, any> = {}): Promise<ApiResponse<Transaction[]>> {
-    const queryString = new URLSearchParams(params).toString();
+  async getTransactions(
+    params: Record<string, any> = {}
+  ): Promise<ApiResponse<Transaction[]>> {
+    const queryString = buildQuery(params);
     return this.request<Transaction[]>(
       `/transactions${queryString ? `?${queryString}` : ""}`
     );

@@ -1,4 +1,4 @@
-//src\components\modals\AddStockModal.tsx 
+// src/components/modals/AddStockModal.tsx
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { InventoryItem } from '../../types';
@@ -14,8 +14,8 @@ const AddStockModal: React.FC<AddStockModalProps> = ({ item, onConfirm, onClose 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const qty = parseInt(quantity);
-    if (qty > 0) {
+    const qty = parseInt(quantity, 10);
+    if (Number.isInteger(qty) && qty > 0) {
       onConfirm(qty);
     }
   };
@@ -37,16 +37,20 @@ const AddStockModal: React.FC<AddStockModalProps> = ({ item, onConfirm, onClose 
           <h4 className="font-medium text-gray-900">{item.brand}</h4>
           <p className="text-sm text-gray-600">{item.type}</p>
           <p className="text-sm text-gray-600">
-            {item.thickness} • {item.sheetSize}
+            {item.thicknessMm} mm • {item.sheetLengthMm} × {item.sheetWidthMm} mm
           </p>
           <p className="text-sm text-gray-600">
-            Current Stock: <span className="font-medium">{item.currentQuantity} units</span>
+            Current Stock:{' '}
+            <span className="font-medium">{item.currentQuantity} units</span>
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="quantity"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Quantity to Add
             </label>
             <input
@@ -55,6 +59,7 @@ const AddStockModal: React.FC<AddStockModalProps> = ({ item, onConfirm, onClose 
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               min="1"
+              step="1"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
               autoFocus

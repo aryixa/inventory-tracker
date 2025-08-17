@@ -135,9 +135,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
               disabled={disableForm}
             >
               <option value="User">User</option>
-              <option value="Viewer">Viewer (read-only)</option>
+              <option value="Viewer">Viewer</option>
             </select>
-            <p className="mt-1 text-xs text-gray-500">Admin can only create User or Viewer roles.</p>
           </div>
 
           {error && <p className="text-red-500 text-sm mb-2">{error}</p>}

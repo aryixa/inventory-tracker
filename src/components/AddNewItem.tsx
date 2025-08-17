@@ -1,59 +1,107 @@
-//src\components\AddNewItem.tsx
+// src/components/AddNewItem.tsx
 import React, { useState } from "react";
 import { Package, Plus } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import apiService from "../services/api";
 import toast from "react-hot-toast";
+
 interface AddNewItemProps {
   onItemAdded?: () => void;
 }
-const defaultFormData = {
-  thickness: "",
-  sheetSize: "",
+
+interface FormState {
+  thicknessMm: string;
+  sheetLengthMm: string;
+  sheetWidthMm: string;
+  brand: string;
+  type: string;
+  initialQuantity: string;
+}
+
+const defaultFormData: FormState = {
+  thicknessMm: "",
+  sheetLengthMm: "",
+  sheetWidthMm: "",
   brand: "",
   type: "",
   initialQuantity: "",
 };
+
 const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
-  const [formData, setFormData] = useState(defaultFormData);
+  const [formData, setFormData] = useState<FormState>(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, isLoading } = useAuth();
   const isAdmin = user?.role === "Admin";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!isAdmin) {
       toast.error("You do not have permission to add inventory items.");
       return;
     }
+
+    // Parse and validate numbers client-side for better UX
+    const thicknessNum = parseFloat(formData.thicknessMm);
+    const lengthNum = parseFloat(formData.sheetLengthMm);
+    const widthNum = parseFloat(formData.sheetWidthMm);
+    const initialQtyNum = parseInt(formData.initialQuantity, 10);
+
+    if (!Number.isFinite(thicknessNum) || thicknessNum <= 0) {
+      toast.error("Thickness (mm) must be a positive number.");
+      return;
+    }
+    if (!Number.isFinite(lengthNum) || lengthNum <= 0) {
+      toast.error("Length (mm) must be a positive number.");
+      return;
+    }
+    if (!Number.isFinite(widthNum) || widthNum <= 0) {
+      toast.error("Width (mm) must be a positive number.");
+      return;
+    }
+    if (!Number.isInteger(initialQtyNum) || initialQtyNum < 0) {
+      toast.error("Initial quantity must be a non-negative integer.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await apiService.createInventoryItem({
-        thickness: formData.thickness.trim(),
-        sheetSize: formData.sheetSize.trim(),
+        thicknessMm: thicknessNum,
+        sheetLengthMm: lengthNum,
+        sheetWidthMm: widthNum,
         brand: formData.brand.trim(),
         type: formData.type.trim(),
-        initialQuantity: parseInt(formData.initialQuantity, 10),
+        initialQuantity: initialQtyNum,
       });
-      if (response.success) {
+
+      if (response?.success) {
         toast.success(response.message || "Inventory item added successfully!");
         setFormData(defaultFormData);
         onItemAdded?.();
       } else {
-        toast.error(response.message || "Failed to add inventory item.");
+        toast.error(response?.message || "Failed to add inventory item.");
       }
     } catch (error: any) {
-      toast.error(error?.message || "An unexpected error occurred.");
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "An unexpected error occurred.";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
   };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -61,6 +109,7 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
       </div>
     );
   }
+
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-screen text-lg text-gray-600">
@@ -68,6 +117,7 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
       </div>
     );
   }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="max-w-2xl mx-auto">
@@ -83,31 +133,108 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              {["thickness", "sheetSize", "brand", "type"].map((field) => {
-                const label = field
-                  .replace(/([A-Z])/g, " $1")
-                  .replace(/^./, (s) => s.toUpperCase());
-                return (
-                  <div key={field}>
-                    <label
-                      htmlFor={field}
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      {label}
-                    </label>
-                    <input
-                      type="text"
-                      id={field}
-                      name={field}
-                      value={(formData as any)[field]}
-                      onChange={handleChange}
-                      placeholder={`Enter ${label.toLowerCase()}`}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                );
-              })}
+              <div>
+                <label
+                  htmlFor="brand"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Brand
+                </label>
+                <input
+                  type="text"
+                  id="brand"
+                  name="brand"
+                  value={formData.brand}
+                  onChange={handleChange}
+                  placeholder="Enter brand"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                  maxLength={100}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="type"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Type
+                </label>
+                <input
+                  type="text"
+                  id="type"
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  placeholder="Enter type"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                  maxLength={100}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="thicknessMm"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Thickness (mm)
+                </label>
+                <input
+                  type="number"
+                  id="thicknessMm"
+                  name="thicknessMm"
+                  value={formData.thicknessMm}
+                  onChange={handleChange}
+                  placeholder="Enter thickness in mm"
+                  min="0.01"
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="sheetLengthMm"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Sheet length (mm)
+                </label>
+                <input
+                  type="number"
+                  id="sheetLengthMm"
+                  name="sheetLengthMm"
+                  value={formData.sheetLengthMm}
+                  onChange={handleChange}
+                  placeholder="Enter length in mm"
+                  min="0.01"
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="sheetWidthMm"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Sheet width (mm)
+                </label>
+                <input
+                  type="number"
+                  id="sheetWidthMm"
+                  name="sheetWidthMm"
+                  value={formData.sheetWidthMm}
+                  onChange={handleChange}
+                  placeholder="Enter width in mm"
+                  min="0.01"
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
             </div>
 
             <div>
@@ -115,7 +242,7 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
                 htmlFor="initialQuantity"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Initial Quantity
+                Initial quantity
               </label>
               <input
                 type="number"
@@ -125,6 +252,7 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
                 onChange={handleChange}
                 placeholder="Enter initial quantity"
                 min="0"
+                step="1"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -144,4 +272,5 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
     </div>
   );
 };
+
 export default AddNewItem;
