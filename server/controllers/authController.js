@@ -7,10 +7,10 @@ const cookieName = process.env.JWT_COOKIE_NAME || 'token';
 
 
 const generateToken = (id) => {
-
-  const expiresIn = process.env.JWT_EXPIRE || '15m';
+  const expiresIn = process.env.JWT_EXPIRE || '7d'; 
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn });
 };
+
 
 const getCookieMaxAgeMs = () => {
   const v =
