@@ -8,9 +8,12 @@ import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import morgan from 'morgan';
 import http from 'http';
-
+import path from 'path';
+import { fileURLToPath } from 'url';
 import connectDB from './config/database.js';
 import { initSocket } from './socket.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load env
 dotenv.config();
@@ -125,13 +128,21 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found',
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(__dirname, '../dist');
+  app.use(express.static(distPath));
+
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next(); 
+    res.sendFile(path.join(distPath, 'index.html'));
   });
+}
+
+// 404 handler
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ success: false, message: 'Route not found' });
 });
+
 
 // Global error handler (last)
 app.use((err, req, res, next) => {
