@@ -70,7 +70,7 @@ const buildAllowedOrigins = () => {
     set.add('http://localhost:5173');
   }
   if (process.env.NODE_ENV === 'production' && set.size === 0) {
-    set.add('https://silver-jellyfish-497679.hostingersite.com');
+    set.add('mayurtuff.online');
   }
   return Array.from(set);
 };
