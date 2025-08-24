@@ -1,4 +1,3 @@
-// src/components/AddNewItem.tsx
 import React, { useState } from "react";
 import { Package, Plus } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
@@ -34,64 +33,66 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
   const isAdmin = user?.role === "Admin";
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!isAdmin) {
-      toast.error("You do not have permission to add inventory items.");
-      return;
-    }
+  if (!isAdmin) {
+    toast.error("You do not have permission to add inventory items.");
+    return;
+  }
 
-    // Parse and validate numbers client-side for better UX
-    const thicknessNum = parseFloat(formData.thicknessMm);
-    const lengthNum = parseFloat(formData.sheetLengthMm);
-    const widthNum = parseFloat(formData.sheetWidthMm);
-    const initialQtyNum = parseInt(formData.initialQuantity, 10);
+  // Convert to numbers
+  const thicknessNum = Number(formData.thicknessMm);
+  const lengthNum = Number(formData.sheetLengthMm);
+  const widthNum = Number(formData.sheetWidthMm);
+  const initialQtyNum = Number(formData.initialQuantity);
 
-    if (!Number.isFinite(thicknessNum) || thicknessNum <= 0) {
-      toast.error("Thickness (mm) must be a positive number.");
-      return;
-    }
-    if (!Number.isFinite(lengthNum) || lengthNum <= 0) {
-      toast.error("Length (mm) must be a positive number.");
-      return;
-    }
-    if (!Number.isFinite(widthNum) || widthNum <= 0) {
-      toast.error("Width (mm) must be a positive number.");
-      return;
-    }
-    if (!Number.isInteger(initialQtyNum) || initialQtyNum < 0) {
-      toast.error("Initial quantity must be a non-negative integer.");
-      return;
-    }
+  // Integer-only validation
+  if (!Number.isInteger(thicknessNum) || thicknessNum <= 0) {
+    toast.error("Thickness (mm) must be a positive whole number.");
+    return;
+  }
+  if (!Number.isInteger(lengthNum) || lengthNum <= 0) {
+    toast.error("Length (mm) must be a positive whole number.");
+    return;
+  }
+  if (!Number.isInteger(widthNum) || widthNum <= 0) {
+    toast.error("Width (mm) must be a positive whole number.");
+    return;
+  }
+  if (!Number.isInteger(initialQtyNum) || initialQtyNum < 0) {
+    toast.error("Initial quantity must be a non-negative whole number.");
+    return;
+  }
 
-    setIsSubmitting(true);
-    try {
-      const response = await apiService.createInventoryItem({
-        thicknessMm: thicknessNum,
-        sheetLengthMm: lengthNum,
-        sheetWidthMm: widthNum,
-        brand: formData.brand.trim(),
-        type: formData.type.trim(),
-        initialQuantity: initialQtyNum,
-      });
+  setIsSubmitting(true);
+  try {
+    const response = await apiService.createInventoryItem({
+      thicknessMm: thicknessNum,
+      sheetLengthMm: lengthNum,
+      sheetWidthMm: widthNum,
+      brand: formData.brand.trim(),
+      type: formData.type.trim(),
+      initialQuantity: initialQtyNum,
+    });
 
-      if (response?.success) {
-        toast.success(response.message || "Inventory item added successfully!");
-        setFormData(defaultFormData);
-        onItemAdded?.();
-      } else {
-        toast.error(response?.message || "Failed to add inventory item.");
-      }
-    } catch (error: any) {
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        "An unexpected error occurred.";
-      toast.error(msg);
-    } finally {
-      setIsSubmitting(false);
+    if (response?.success) {
+      toast.success(response.message || "Inventory item added successfully!");
+      setFormData(defaultFormData);
+      onItemAdded?.();
+    } else {
+      toast.error(response?.message || "Failed to add inventory item.");
     }
-  };
+  } catch (error: any) {
+    const msg =
+      error?.response?.data?.message ||
+      error?.message ||
+      "An unexpected error occurred.";
+    toast.error(msg);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -187,8 +188,8 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
                   value={formData.thicknessMm}
                   onChange={handleChange}
                   placeholder="Enter thickness in mm"
-                  min="0.01"
-                  step="0.01"
+                  min="1"
+                  step="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -208,8 +209,8 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
                   value={formData.sheetLengthMm}
                   onChange={handleChange}
                   placeholder="Enter length in mm"
-                  min="0.01"
-                  step="0.01"
+                  min="1"
+                  step="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -229,8 +230,8 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
                   value={formData.sheetWidthMm}
                   onChange={handleChange}
                   placeholder="Enter width in mm"
-                  min="0.01"
-                  step="0.01"
+                  min="1"
+                  step="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
