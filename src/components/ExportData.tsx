@@ -26,16 +26,20 @@ const ExportData: React.FC = () => {
         apiService.getTransactionStats(),
       ]);
 
-      if (inventoryResponse.success) {
-        const items = inventoryResponse.data || [];
-        const totalStock = items.reduce((sum: number, item: any) => sum + item.currentQuantity, 0);
-        
-        setStats(prev => ({
-          ...prev,
-          totalItems: items.length,
-          totalStock,
-        }));
-      }
+if (inventoryResponse.success) {
+  const items = inventoryResponse.data || [];
+  const totalStock = items.reduce((sum, item) => sum + item.currentQuantity, 0);
+
+  const totalCount = inventoryResponse.meta?.total ?? items.length;
+
+  setStats(prev => ({
+    ...prev,
+    totalItems: totalCount,
+    totalStock,
+  }));
+}
+
+
 
       if (transactionStatsResponse.success) {
   const transactionStats = transactionStatsResponse.data;
