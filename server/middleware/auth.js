@@ -36,9 +36,8 @@ res.cookie(cookieName, '', {
 
         return res.status(401).json({
           success: false,
-          message: 'Token expired. Please log in again.',
           code: 'TOKEN_EXPIRED'
-        });
+       });
       }
       return res.status(401).json({
         success: false,

@@ -98,7 +98,7 @@ class ApiService {
       if (!response.ok) {
         this.handleUnauthorized(parsed, response.status);
         const message =
-          parsed?.message || response.statusText || "API request failed";
+          parsed?.message || response.statusText;
         throw new ApiError(message, response.status, parsed, url);
       }
 

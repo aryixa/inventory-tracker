@@ -71,11 +71,12 @@ const buildAllowedOrigins = () => {
   // Dev defaults (local dev)
   if (process.env.NODE_ENV !== 'production') {
     set.add('http://localhost:5173');
-  }
-  if (process.env.NODE_ENV === 'production' && set.size === 0) {
-    set.add('mayurtuff.online');
-  }
-  return Array.from(set);
+   }
+ if (process.env.NODE_ENV === 'production' && set.size === 0) {
+  set.add('https://mayurtuff.online');
+  set.add('https://www.mayurtuff.online');
+}
+ return Array.from(set);
 };
 
 const allowedOrigins = buildAllowedOrigins();
