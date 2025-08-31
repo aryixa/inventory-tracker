@@ -64,7 +64,9 @@ export const validatePasswordChange = [
 export const validateInventoryItem = [
   body('thicknessMm')
     .isFloat({ gt: 0 })
-    .withMessage('thicknessMm must be a positive number (mm)'),
+    .withMessage('thicknessMm must be a positive number (mm)')
+    .matches(/^\d+(\.\d{1,2})?$/)
+    .withMessage('thicknessMm can have at most 2 decimal places'),
   body('sheetLengthMm')
     .isFloat({ gt: 0 })
     .withMessage('sheetLengthMm must be a positive number (mm)'),
@@ -88,6 +90,7 @@ export const validateInventoryItem = [
     .withMessage('Initial quantity must be a non-negative integer'),
   handleValidationErrors,
 ];
+
 
 // Transaction validation rules
 export const validateTransaction = [
