@@ -47,7 +47,8 @@ export const getTransactions = async (req, res) => {
               _id: 1,
               brand: 1,
               type: 1,
-              thicknessMm: 1,
+              // THIS IS THE CRITICAL FIX: convert the Decimal128 to a string
+              thicknessMm: { $toString: "$thicknessMm" }, 
               sheetLengthMm: 1,
               sheetWidthMm: 1,
               totalSqmPerUnit: 1
@@ -81,6 +82,8 @@ export const getTransactions = async (req, res) => {
         { 'item.type': { $regex: term, $options: 'i' } },
         { 'user.username': { $regex: term, $options: 'i' } }
       ];
+      // Note: The number search for thickness will now search on a string, which might not be ideal.
+      // It's a trade-off for a clean display. We can refine this later if needed.
       if (Number.isFinite(num)) {
         orConds.push({ 'item.thicknessMm': num });
         orConds.push({ 'item.sheetLengthMm': num });
@@ -128,30 +131,36 @@ export const getTransactions = async (req, res) => {
 };
 
 export const getTransaction = async (req, res) => {
-  try {
-    const transaction = await Transaction.findById(req.params.id)
-      .populate('item_id', 'brand type thicknessMm sheetLengthMm sheetWidthMm totalSqmPerUnit')
-      .populate('user_id', 'username role');
+  try {
+    const transaction = await Transaction.findById(req.params.id)
+      .populate({
+        path: 'item_id',
+        select: 'brand type thicknessMm sheetLengthMm sheetWidthMm totalSqmPerUnit',
+        // Add this option to trigger the getter for Decimal128
+        options: { getters: true }
+      })
+      .populate('user_id', 'username role');
 
-    if (!transaction) {
-      return res.status(404).json({
-        success: false,
-        message: 'Transaction not found'
-      });
-    }
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transaction not found'
+      });
+    }
 
-    res.status(200).json({
-      success: true,
-      data: transaction
-    });
-  } catch (error) {
-    console.error('Get transaction error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching transaction'
-    });
-  }
+    res.status(200).json({
+      success: true,
+      data: transaction
+    });
+  } catch (error) {
+    console.error('Get transaction error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching transaction'
+    });
+  }
 };
+
 
 export const getTransactionStats = async (req, res) => {
   try {

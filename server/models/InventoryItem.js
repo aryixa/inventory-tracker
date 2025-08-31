@@ -3,9 +3,15 @@ import mongoose from 'mongoose';
 
 const inventoryItemSchema = new mongoose.Schema({
   thicknessMm: {
-    type: Number,
+    type: mongoose.Schema.Types.Decimal128,
     required: [true, 'Thickness (mm) is required'],
-    min: [0.1, 'Thickness must be positive']
+    min: [0.1, 'Thickness must be positive'],
+    // Getter: convert Decimal128 → JS number for API/UI
+    get: v => v == null ? v : parseFloat(v.toString()),
+    // Setter: round to 2 decimal places before storing
+    set: v => v == null
+      ? v
+      : mongoose.Types.Decimal128.fromString(parseFloat(v).toFixed(2))
   },
   sheetLengthMm: {
     type: Number,
@@ -39,7 +45,6 @@ const inventoryItemSchema = new mongoose.Schema({
   },
   totalSqm: {
     type: Number,
-    
     min: [0, 'Total sqm cannot be negative']
   },
   createdBy: {
@@ -52,14 +57,18 @@ const inventoryItemSchema = new mongoose.Schema({
     default: true
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  // Ensure getters run when converting to JSON or plain objects
+  toJSON: { virtuals: true, getters: true },
+  toObject: { virtuals: true, getters: true }
 });
 
+// Compound index for uniqueness/search
 inventoryItemSchema.index(
   { brand: 1, type: 1, thicknessMm: 1, sheetLengthMm: 1, sheetWidthMm: 1 }
 );
 
-
+// Virtual: area per unit in sqm
 inventoryItemSchema.virtual('areaSqmPerUnit').get(function() {
   if (this.sheetLengthMm && this.sheetWidthMm) {
     return (this.sheetLengthMm * this.sheetWidthMm) / 1_000_000;
@@ -67,19 +76,12 @@ inventoryItemSchema.virtual('areaSqmPerUnit').get(function() {
   return 0;
 });
 
-/**
- * Display name now uses mm dimensions
- */
+// Virtual: display name
 inventoryItemSchema.virtual('displayName').get(function() {
   return `${this.brand} - ${this.thicknessMm}mm - ${this.sheetLengthMm}x${this.sheetWidthMm}mm - ${this.type}`;
 });
 
-inventoryItemSchema.set('toJSON', { virtuals: true });
-
-/**
- * Pre-save hook — recompute totalSqm if currentQuantity or dimensions change
- * (Length/width are fixed after creation by controller validation)
- */
+// Pre-save hook: recompute totalSqm
 inventoryItemSchema.pre('save', function(next) {
   this.totalSqm = this.areaSqmPerUnit * this.currentQuantity;
   next();

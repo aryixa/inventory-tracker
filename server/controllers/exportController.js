@@ -9,12 +9,19 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Ensure export directory exists
 const ensureExportsDir = (filePath) => {
   const exportsDir = path.dirname(filePath);
   if (!fs.existsSync(exportsDir)) {
     fs.mkdirSync(exportsDir, { recursive: true });
   }
 };
+
+// Format Decimal128 values to fixed 2 decimal places
+const formatDecimal128 = (val) =>
+  val && val._bsontype === 'Decimal128'
+    ? parseFloat(val.toString()).toFixed(2)
+    : val;
 
 // @desc    Export inventory data to CSV
 // @route   GET /api/export/inventory
@@ -30,13 +37,13 @@ export const exportInventory = async (req, res) => {
       id: item._id.toString(),
       brand: item.brand,
       type: item.type,
-      thicknessMm: item.thicknessMm,
+      thicknessMm: formatDecimal128(item.thicknessMm),
       sheetLengthMm: item.sheetLengthMm,
       sheetWidthMm: item.sheetWidthMm,
-      totalSqmPerUnit: item.totalSqmPerUnit, // assumes computed in model
+      totalSqmPerUnit: formatDecimal128(item.totalSqmPerUnit),
       initialQuantity: item.initialQuantity,
       currentQuantity: item.currentQuantity,
-      totalSqm: item.totalSqm,               // assumes computed in model
+      totalSqm: formatDecimal128(item.totalSqm),
       createdBy: item.createdBy?.username || 'Unknown',
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt.toISOString()
@@ -73,6 +80,7 @@ export const exportInventory = async (req, res) => {
         console.error('File download error:', err);
         return res.status(500).json({ success: false, message: 'Error downloading file' });
       }
+      // Auto-delete after 1 minute
       setTimeout(() => fs.existsSync(filePath) && fs.unlinkSync(filePath), 60000);
     });
   } catch (error) {
@@ -106,9 +114,9 @@ export const exportTransactions = async (req, res) => {
         id: tx._id.toString(),
         timestamp: tx.createdAt.toISOString(),
         itemName: item
-          ? `${item.brand} - ${item.thicknessMm}mm - ${item.sheetLengthMm}x${item.sheetWidthMm}mm - ${item.type}`
+          ? `${item.brand} - ${formatDecimal128(item.thicknessMm)}mm - ${item.sheetLengthMm}x${item.sheetWidthMm}mm - ${item.type}`
           : 'Deleted Item',
-        areaPerUnitSqm: item?.totalSqmPerUnit ?? '',
+        areaPerUnitSqm: item ? formatDecimal128(item.totalSqmPerUnit) : '',
         user: tx.user_id?.username || 'Unknown User',
         transactionType: tx.transactionType,
         reductionReason: tx.reductionReason || '',

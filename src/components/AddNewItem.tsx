@@ -47,10 +47,16 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
   const initialQtyNum = Number(formData.initialQuantity);
 
   // Integer-only validation
-  if (!Number.isInteger(thicknessNum) || thicknessNum <= 0) {
-    toast.error("Thickness (mm) must be a positive whole number.");
-    return;
-  }
+  // Decimal (max 2dp) validation
+if (
+  !Number.isFinite(thicknessNum) ||
+  thicknessNum <= 0 ||
+  !/^\d+(\.\d{1,2})?$/.test(formData.thicknessMm)
+) {
+  toast.error("Thickness (mm) must be a positive number with up to 2 decimal places.");
+  return;
+}
+
   if (!Number.isInteger(lengthNum) || lengthNum <= 0) {
     toast.error("Length (mm) must be a positive whole number.");
     return;
@@ -188,8 +194,8 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
                   value={formData.thicknessMm}
                   onChange={handleChange}
                   placeholder="Enter thickness in mm"
-                  min="1"
-                  step="1"
+                  min="0.1"
+                  step="0.01"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
