@@ -5,13 +5,15 @@ import {
   getInventoryItem,
   createInventoryItem,
   updateInventoryQuantity,
-  deleteInventoryItem
+  deleteInventoryItem,
+updateInventoryItem
 } from '../controllers/inventoryController.js';
 import { protect, authorize } from '../middleware/auth.js';
 import {
   validateInventoryItem,
   validateTransaction,
-  validateMongoIdParam
+  validateMongoIdParam,
+  validateInventoryUpdate, 
 } from '../middleware/validation.js';
 
 const router = express.Router();
@@ -33,6 +35,13 @@ router.put(
   validateMongoIdParam,
   validateTransaction,
   updateInventoryQuantity
+);
+router.put(
+  '/:id',
+  authorize('Admin'),           
+  validateMongoIdParam,  
+  validateInventoryUpdate,       
+  updateInventoryItem         
 );
 
 export default router;

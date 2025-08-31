@@ -390,6 +390,76 @@ export const updateInventoryQuantity = async (req, res) => {
     session.endSession();
   }
 };
+/** 
+ * @desc Update full/partial inventory item details (Admin only)
+ * @route PUT /api/inventory/:id
+ * @access Private/Admin
+ */
+export const updateInventoryItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Only allow certain fields to be updated
+    const allowedFields = [
+      'thicknessMm',
+      'sheetLengthMm',
+      'sheetWidthMm'
+    ];
+
+    const updateData = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    }
+
+    // If thicknessMm is provided, ensure it's stored as Decimal128 with 2 decimals
+    if (updateData.thicknessMm !== undefined) {
+      const thicknessVal = parseFloat(updateData.thicknessMm);
+      if (!Number.isFinite(thicknessVal) || thicknessVal <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'thicknessMm must be a positive number'
+        });
+      }
+      updateData.thicknessMm = mongoose.Types.Decimal128.fromString(
+        thicknessVal.toFixed(2)
+      );
+    }
+
+    const updatedItem = await InventoryItem.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).populate('createdBy', 'username');
+
+    if (!updatedItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Inventory item not found'
+      });
+    }
+
+    // Emit socket event so all clients update in real time
+    io.to('inventory').emit(
+      'inventory:updated',
+      updatedItem.toObject({ virtuals: true })
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Inventory item updated successfully',
+      data: updatedItem
+    });
+  } catch (error) {
+    console.error('Update inventory item error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error while updating inventory item'
+    });
+  }
+};
+
 
 /**
  * @desc Delete inventory item (soft delete; Admin-only via route guard)

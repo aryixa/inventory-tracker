@@ -199,6 +199,34 @@ class ApiService {
   }
 
   // --- Inventory methods ---
+  async updateInventoryItem(
+  item_id: string,
+  updateData: Partial<InventoryItem>
+): Promise<ApiResponse<InventoryItem>> {
+  // Mirror backend's allowed fields
+  const allowedFields = ['thicknessMm', 'sheetLengthMm', 'sheetWidthMm'] as const;
+
+  // Filter payload
+  const filteredPayload = Object.fromEntries(
+    Object.entries(updateData).filter(([key]) =>
+      allowedFields.includes(key as any)
+    )
+  );
+
+  // Optional: format thicknessMm to 2 decimals if present
+  if (filteredPayload.thicknessMm !== undefined) {
+    filteredPayload.thicknessMm = parseFloat(
+      Number(filteredPayload.thicknessMm).toFixed(2)
+    );
+  }
+
+  return this.request<InventoryItem>(`/inventory/${item_id}`, {
+    method: 'PUT',
+    body: JSON.stringify(filteredPayload),
+  });
+}
+
+
   async getInventoryItems(
     params: Record<string, any> = {}
   ): Promise<ApiResponse<InventoryItem[]>> {

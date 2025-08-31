@@ -64,9 +64,7 @@ export const validatePasswordChange = [
 export const validateInventoryItem = [
   body('thicknessMm')
     .isFloat({ gt: 0 })
-    .withMessage('thicknessMm must be a positive number (mm)')
-    .matches(/^\d+(\.\d{1,2})?$/)
-    .withMessage('thicknessMm can have at most 2 decimal places'),
+    .withMessage('thicknessMm must be a positive number (mm)'),
   body('sheetLengthMm')
     .isFloat({ gt: 0 })
     .withMessage('sheetLengthMm must be a positive number (mm)'),
@@ -90,7 +88,27 @@ export const validateInventoryItem = [
     .withMessage('Initial quantity must be a non-negative integer'),
   handleValidationErrors,
 ];
+// Inventory item update validation rules — partial updates allowed
+export const validateInventoryUpdate = [
+  body('thicknessMm')
+    .optional()
+    .isFloat({ gt: 0 })
+    .withMessage('thicknessMm must be a positive number (mm)')
+    .matches(/^\d+(\.\d{1,2})?$/)
+    .withMessage('thicknessMm can have at most 2 decimal places'),
 
+  body('sheetLengthMm')
+    .optional()
+    .isFloat({ gt: 0 })
+    .withMessage('sheetLengthMm must be a positive number (mm)'),
+
+  body('sheetWidthMm')
+    .optional()
+    .isFloat({ gt: 0 })
+    .withMessage('sheetWidthMm must be a positive number (mm)'),
+
+  handleValidationErrors,
+];
 
 // Transaction validation rules
 export const validateTransaction = [

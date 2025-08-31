@@ -161,7 +161,13 @@ const AllTransactions: React.FC = () => {
   const renderItemLabel = (t: Transaction) => {
     const it = (t as any).item_id;
     if (!it) return "Deleted Item";
-    return `${it.brand} - ${it.thicknessMm}mm - ${it.sheetLengthMm}x${it.sheetWidthMm}mm - ${it.type}`;
+
+    // Safely get thickness, handling cases where it might be a string, number, or missing
+    const thickness = it.thicknessMm !== undefined && it.thicknessMm !== null
+      ? String(it.thicknessMm)
+      : 'N/A';
+
+    return `${it.brand} - ${thickness}mm - ${it.sheetLengthMm}x${it.sheetWidthMm}mm - ${it.type}`;
   };
 
   const toggleFilter = (key: ActiveFilter) => {
