@@ -50,7 +50,9 @@ const InventoryManagement: React.FC = () => {
       if (authIsLoading) return;
       try {
         if (showRefresh) setIsRefreshing(true);
-        const response = await apiService.getInventoryItems({ search: searchTerm });
+        const response = await apiService.getInventoryItems({
+          search: searchTerm,
+        });
         if (response.success) {
           setItems(response.data || []);
         } else {
@@ -120,10 +122,13 @@ const InventoryManagement: React.FC = () => {
       return;
     }
     try {
-      const response = await apiService.updateInventoryQuantity(selectedItem._id, {
-        transactionType: "addition",
-        quantityChanged: quantity,
-      });
+      const response = await apiService.updateInventoryQuantity(
+        selectedItem._id,
+        {
+          transactionType: "addition",
+          quantityChanged: quantity,
+        }
+      );
       if (response.success) {
         toast.success(response.message || "Stock added successfully!");
         setShowAddModal(false);
@@ -135,9 +140,16 @@ const InventoryManagement: React.FC = () => {
       console.error("Add stock error:", error);
       const status = error?.status ?? error?.response?.status;
       if (status === 403) {
-        toast.error(error?.response?.data?.message || "You do not have permission to add stock.");
+        toast.error(
+          error?.response?.data?.message ||
+            "You do not have permission to add stock."
+        );
       } else {
-        toast.error(error?.response?.data?.message || error?.message || "Failed to add stock");
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Failed to add stock"
+        );
       }
     }
   };
@@ -152,11 +164,14 @@ const InventoryManagement: React.FC = () => {
       return;
     }
     try {
-      const response = await apiService.updateInventoryQuantity(selectedItem._id, {
-        transactionType: "reduction",
-        quantityChanged: quantity,
-        reductionReason,
-      });
+      const response = await apiService.updateInventoryQuantity(
+        selectedItem._id,
+        {
+          transactionType: "reduction",
+          quantityChanged: quantity,
+          reductionReason,
+        }
+      );
       if (response.success) {
         toast.success(response.message || "Stock reduced successfully!");
         setShowUseModal(false);
@@ -168,9 +183,16 @@ const InventoryManagement: React.FC = () => {
       console.error("Use stock error:", error);
       const status = error?.status ?? error?.response?.status;
       if (status === 403) {
-        toast.error(error?.response?.data?.message || "You do not have permission to reduce inventory.");
+        toast.error(
+          error?.response?.data?.message ||
+            "You do not have permission to reduce inventory."
+        );
       } else {
-        toast.error(error?.response?.data?.message || error?.message || "Failed to reduce stock");
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Failed to reduce stock"
+        );
       }
     }
   };
@@ -189,7 +211,9 @@ const InventoryManagement: React.FC = () => {
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Inventory Management
+        </h1>
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-96">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -208,7 +232,9 @@ const InventoryManagement: React.FC = () => {
       {items.length === 0 ? (
         <div className="text-center py-16">
           <Package className="mx-auto w-16 h-16 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No inventory items found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No inventory items found
+          </h3>
           <p className="text-gray-600">
             {searchTerm
               ? "No items match your search criteria."
@@ -216,8 +242,10 @@ const InventoryManagement: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 
-        :grid-cols-3 xl:grid-cols-4 gap-6">
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 
+        :grid-cols-3 xl:grid-cols-4 gap-6"
+        >
           {items.map((item) => (
             <div
               key={item._id}
@@ -227,12 +255,9 @@ const InventoryManagement: React.FC = () => {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
-                    <h3 className="font-bold text-xl text-blue-900 truncate">
-                      {item.type}
-                    </h3>
-                    <p className="text-sm text-gray-900 truncate">
-                      {item.brand}
-                    </p>
+                    <h3 className="font-bold text-xl text-blue-900 break-words whitespace-normal">{item.type}</h3>
+<p className="text-sm text-gray-900 break-words whitespace-normal">{item.brand}</p>
+
                   </div>
                 </div>
                 {isAdmin && (
@@ -318,31 +343,37 @@ const InventoryManagement: React.FC = () => {
 
               {/* Action buttons */}
 
-
-              <div className="
+              <div
+                className="
   flex flex-col gap-2
   sm:flex-row
   lg:flex-col
-">
-  {isAdmin && (
-    <button
-      onClick={() => { setSelectedItem(item); setShowAddModal(true); }}
-      className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm"
-    >
-      + Add
-    </button>
-  )}
-  {canReduce && (
-    <button
-      onClick={() => { setSelectedItem(item); setShowUseModal(true); }}
-      disabled={item.currentQuantity === 0}
-      className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      – Reduce
-    </button>
-  )}
-</div>
-
+"
+              >
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setShowAddModal(true);
+                    }}
+                    className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm"
+                  >
+                    + Add
+                  </button>
+                )}
+                {canReduce && (
+                  <button
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setShowUseModal(true);
+                    }}
+                    disabled={item.currentQuantity === 0}
+                    className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    – Reduce
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
