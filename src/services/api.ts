@@ -203,10 +203,14 @@ class ApiService {
   item_id: string,
   updateData: Partial<InventoryItem>
 ): Promise<ApiResponse<InventoryItem>> {
-  // Mirror backend's allowed fields
-  const allowedFields = ['thicknessMm', 'sheetLengthMm', 'sheetWidthMm'] as const;
+  const allowedFields = [
+  'brand',
+  'type',
+  'thicknessMm',
+  'sheetLengthMm',
+  'sheetWidthMm'
+] as const;
 
-  // Filter payload
   const filteredPayload = Object.fromEntries(
     Object.entries(updateData).filter(([key]) =>
       allowedFields.includes(key as any)

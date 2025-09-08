@@ -390,21 +390,16 @@ export const updateInventoryQuantity = async (req, res) => {
     session.endSession();
   }
 };
-/** 
- * @desc Update full/partial inventory item details (Admin only)
- * @route PUT /api/inventory/:id
- * @access Private/Admin
- */
+// /** 
+//  * @desc Update full/partial inventory item details (Admin only)
+//  * @route PUT /api/inventory/:id
+//  * @access Private/Admin
+//  */
 export const updateInventoryItem = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Only allow certain fields to be updated
-    const allowedFields = [
-      'thicknessMm',
-      'sheetLengthMm',
-      'sheetWidthMm'
-    ];
+    const allowedFields = ['brand', 'type', 'thicknessMm', 'sheetLengthMm', 'sheetWidthMm'];
 
     const updateData = {};
     for (const field of allowedFields) {
@@ -413,7 +408,6 @@ export const updateInventoryItem = async (req, res) => {
       }
     }
 
-    // If thicknessMm is provided, ensure it's stored as Decimal128 with 2 decimals
     if (updateData.thicknessMm !== undefined) {
       const thicknessVal = parseFloat(updateData.thicknessMm);
       if (!Number.isFinite(thicknessVal) || thicknessVal <= 0) {
@@ -426,7 +420,12 @@ export const updateInventoryItem = async (req, res) => {
         thicknessVal.toFixed(2)
       );
     }
-
+    if (updateData.brand !== undefined) {
+     updateData.brand = String(updateData.brand).trim();
+   }
+   if (updateData.type !== undefined) {
+     updateData.type = String(updateData.type).trim();
+   }
     const updatedItem = await InventoryItem.findByIdAndUpdate(
       id,
       { $set: updateData },

@@ -15,6 +15,8 @@ const EditInventoryModal: React.FC<EditInventoryModalProps> = ({
   onUpdated,
 }) => {
   const [formData, setFormData] = useState<Partial<InventoryItem>>({
+    brand: item.brand || "",
+    type: item.type || "",
     thicknessMm: item.thicknessMm,
     sheetLengthMm: item.sheetLengthMm,
     sheetWidthMm: item.sheetWidthMm,
@@ -59,8 +61,35 @@ const EditInventoryModal: React.FC<EditInventoryModalProps> = ({
         <h2 className="text-lg font-bold mb-4">Edit Inventory Item</h2>
 
         <div className="space-y-4">
-                
+          {/* Brand */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Brand
+            </label>
+            <input
+              name="brand"
+              type="text"
+              value={formData.brand ?? ""}
+              onChange={handleChange}
+              className="border p-2 w-full rounded"
+            />
+          </div>
 
+          {/* Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Type
+            </label>
+            <input
+              name="type"
+              type="text"
+              value={formData.type ?? ""}
+              onChange={handleChange}
+              className="border p-2 w-full rounded"
+            />
+          </div>
+
+          {/* Thickness */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Thickness (mm)
@@ -75,6 +104,7 @@ const EditInventoryModal: React.FC<EditInventoryModalProps> = ({
             />
           </div>
 
+          {/* Length */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Length (mm)
@@ -88,6 +118,7 @@ const EditInventoryModal: React.FC<EditInventoryModalProps> = ({
             />
           </div>
 
+          {/* Width */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Width (mm)

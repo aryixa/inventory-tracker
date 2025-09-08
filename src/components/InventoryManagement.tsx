@@ -243,138 +243,143 @@ const InventoryManagement: React.FC = () => {
         </div>
       ) : (
         <div
-          className="grid grid-cols-1 sm:grid-cols-2 
-        :grid-cols-3 xl:grid-cols-4 gap-6"
+  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6"
         >
           {items.map((item) => (
-            <div
-              key={item._id}
-              className="bg-blue-50 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-            >
-              {/* Top section with title and edit button */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-bold text-xl text-blue-900 break-words whitespace-normal">{item.type}</h3>
-<p className="text-sm text-gray-900 break-words whitespace-normal">{item.brand}</p>
+<div
+  key={item._id}
+  className="bg-blue-50 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow flex flex-col"
+>
+  <div className="flex items-start justify-between mb-4">
+    <div className="min-w-0 flex-1">
+  
+      <div className="overflow-x-auto overflow-y-hidden whitespace-nowrap">
+        <h3 className="font-bold text-xl text-blue-900">
+          {item.type}
+        </h3>
+        <p className="text-sm text-gray-900">
+          {item.brand}
+        </p>
+      </div>
+    </div>
+    
+    {isAdmin && (
+      <button
+        onClick={() => {
+          setSelectedItem(item);
+          setShowEditModal(true);
+        }}
+        className="p-2 rounded-full bg-white shadow hover:bg-gray-100 transition-colors flex-shrink-0 ml-3"
+        aria-label="Edit inventory item"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5 text-gray-700"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6H9v-3z"
+          />
+        </svg>
+      </button>
+    )}
+  </div>
 
-                  </div>
-                </div>
-                {isAdmin && (
-                  <button
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setShowEditModal(true);
-                    }}
-                    className="p-2 rounded-full bg-white shadow hover:bg-gray-100 transition-colors"
-                    aria-label="Edit inventory item"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 text-gray-700"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6H9v-3z"
-                      />
-                    </svg>
-                  </button>
-                )}
-              </div>
+  {/* Item details */}
+  <div className="space-y-2 mb-4">
+    <div className="flex justify-between">
+      <span className="text-sm font-medium text-gray-900">
+        Thickness:
+      </span>
+      <span className="text-sm font-medium text-gray-900">
+        {item.thicknessMm}mm
+      </span>
+    </div>
+    <div className="flex justify-between">
+      <span className="text-sm font-medium text-gray-900">
+        Length:
+      </span>
+      <span className="text-sm font-medium text-gray-900">
+        {item.sheetLengthMm}mm
+      </span>
+    </div>
+    <div className="flex justify-between">
+      <span className="text-sm font-medium text-gray-900">
+        Width:
+      </span>
+      <span className="text-sm font-medium text-gray-900">
+        {item.sheetWidthMm}mm
+      </span>
+    </div>
+    {typeof item.totalSqm === "number" && (
+      <div className="flex justify-between">
+        <span className="text-sm font-medium text-gray-900">
+          Total area:
+        </span>
+        <span className="text-sm font-medium text-gray-900">
+          {item.totalSqm.toFixed(1)}sqm
+        </span>
+      </div>
+    )}
+    <div className="flex justify-between">
+      <span className="text-sm font-medium text-gray-900">
+        Current stock:
+      </span>
+      <span
+        className={`text-sm font-medium ${
+          item.currentQuantity === 0
+            ? "text-red-600"
+            : item.currentQuantity < 10
+            ? "text-orange-600"
+            : "text-green-600"
+        }`}
+      >
+        {item.currentQuantity} units
+      </span>
+    </div>
+  </div>
 
-              {/* Item details */}
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-900">
-                    Thickness:
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {item.thicknessMm}mm
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-900">
-                    Length:
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {item.sheetLengthMm}mm
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-900">
-                    Width:
-                  </span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {item.sheetWidthMm}mm
-                  </span>
-                </div>
-                {typeof item.totalSqm === "number" && (
-                  <div className="flex justify-between">
-                    <span className="text-sm font-medium text-gray-900">
-                      Total area:
-                    </span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {item.totalSqm.toFixed(1)}sqm
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-900">
-                    Current stock:
-                  </span>
-                  <span
-                    className={`text-sm font-medium ${
-                      item.currentQuantity === 0
-                        ? "text-red-600"
-                        : item.currentQuantity < 10
-                        ? "text-orange-600"
-                        : "text-green-600"
-                    }`}
-                  >
-                    {item.currentQuantity} units
-                  </span>
-                </div>
-              </div>
+  {/* Action buttons */}
+  <div
+    className="
+    flex flex-col gap-2 mt-auto
+    sm:flex-row
+    lg:flex-col
+  "
+  >
+    {isAdmin && (
+      <button
+        onClick={() => {
+          setSelectedItem(item);
+          setShowAddModal(true);
+        }}
+        className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm"
+      >
+        + Add
+      </button>
+    )}
+    {canReduce && (
+      <button
+        onClick={() => {
+          setSelectedItem(item);
+          setShowUseModal(true);
+        }}
+        disabled={item.currentQuantity === 0}
+        className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        – Reduce
+      </button>
+    )}
+  </div>
+</div>
 
-              {/* Action buttons */}
 
-              <div
-                className="
-  flex flex-col gap-2
-  sm:flex-row
-  lg:flex-col
-"
-              >
-                {isAdmin && (
-                  <button
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setShowAddModal(true);
-                    }}
-                    className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 text-sm"
-                  >
-                    + Add
-                  </button>
-                )}
-                {canReduce && (
-                  <button
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setShowUseModal(true);
-                    }}
-                    disabled={item.currentQuantity === 0}
-                    className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    – Reduce
-                  </button>
-                )}
-              </div>
-            </div>
+
           ))}
         </div>
       )}
