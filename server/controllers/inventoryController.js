@@ -65,6 +65,9 @@ export const getInventoryItems = async (req, res) => {
       if (i.thicknessMm && i.thicknessMm._bsontype === "Decimal128") {
         i.thicknessMm = parseFloat(i.thicknessMm.toString());
       }
+      if (i.rate && i.rate._bsontype === "Decimal128") {
+        i.rate = parseFloat(i.rate.toString());
+      }
     });
 
     res.status(200).json({
@@ -125,6 +128,9 @@ export const createInventoryItem = async (req, res) => {
   session.startTransaction();
 
   try {
+    // Debug: Log req.user to see what's available
+    console.log('req.user in createInventoryItem:', req.user);
+    
     if (Object.prototype.hasOwnProperty.call(req.body, "sheetSize")) {
       await session.abortTransaction();
       return res.status(400).json({
@@ -141,6 +147,7 @@ export const createInventoryItem = async (req, res) => {
       brand,
       type,
       initialQuantity,
+      rate,
     } = req.body;
 
     const thicknessVal = parseFloat(thicknessMm);
@@ -150,6 +157,7 @@ export const createInventoryItem = async (req, res) => {
     const lengthVal = Number(sheetLengthMm);
     const widthVal = Number(sheetWidthMm);
     const initialQtyVal = Number(initialQuantity);
+    const rateVal = parseFloat(rate);
 
     if (
       !Number.isFinite(thicknessVal) ||
@@ -157,13 +165,15 @@ export const createInventoryItem = async (req, res) => {
       !Number.isFinite(lengthVal) ||
       lengthVal <= 0 ||
       !Number.isFinite(widthVal) ||
-      widthVal <= 0
+      widthVal <= 0 ||
+      !Number.isFinite(rateVal) ||
+      rateVal < 0
     ) {
       await session.abortTransaction();
       return res.status(400).json({
         success: false,
         message:
-          "thicknessMm, sheetLengthMm, and sheetWidthMm must be positive numbers (mm).",
+          "thicknessMm, sheetLengthMm, and sheetWidthMm must be positive numbers (mm) and rate must be a non-negative number.",
       });
     }
 
@@ -204,15 +214,26 @@ export const createInventoryItem = async (req, res) => {
       });
     }
 
+    // Ensure we have a valid user ID
+    const userId = req.user?.id || req.user?._id;
+    if (!userId) {
+      await session.abortTransaction();
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required',
+      });
+    }
+
     const itemDoc = new InventoryItem({
-      thicknessMm: thicknessVal, // schema setter will handle rounding & Decimal128
+      thicknessMm: decimalThickness,
       sheetLengthMm: lengthVal,
       sheetWidthMm: widthVal,
-      brand: String(brand).trim(),
-      type: String(type).trim(),
+      brand,
+      type,
       initialQuantity: initialQtyVal,
       currentQuantity: initialQtyVal,
-      createdBy: req.user.id,
+      rate: mongoose.Types.Decimal128.fromString(rateVal.toFixed(2)),
+      createdBy: userId,
     });
 
     await itemDoc.save({ session });
@@ -221,7 +242,7 @@ export const createInventoryItem = async (req, res) => {
       [
         {
           item_id: itemDoc._id,
-          user_id: req.user.id,
+          user_id: userId,
           transactionType: "addition",
           quantityChanged: initialQtyVal,
           previousQuantity: 0,
@@ -399,7 +420,7 @@ export const updateInventoryItem = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const allowedFields = ['brand', 'type', 'thicknessMm', 'sheetLengthMm', 'sheetWidthMm'];
+    const allowedFields = ['brand', 'type', 'thicknessMm', 'sheetLengthMm', 'sheetWidthMm', 'rate'];
 
     const updateData = {};
     for (const field of allowedFields) {
@@ -418,6 +439,19 @@ export const updateInventoryItem = async (req, res) => {
       }
       updateData.thicknessMm = mongoose.Types.Decimal128.fromString(
         thicknessVal.toFixed(2)
+      );
+    }
+    
+    if (updateData.rate !== undefined) {
+      const rateVal = parseFloat(updateData.rate);
+      if (!Number.isFinite(rateVal) || rateVal < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'rate must be a non-negative number'
+        });
+      }
+      updateData.rate = mongoose.Types.Decimal128.fromString(
+        rateVal.toFixed(2)
       );
     }
     if (updateData.brand !== undefined) {

@@ -15,6 +15,7 @@ interface FormState {
   brand: string;
   type: string;
   initialQuantity: string;
+  rate: string;
 }
 
 const defaultFormData: FormState = {
@@ -24,6 +25,7 @@ const defaultFormData: FormState = {
   brand: "",
   type: "",
   initialQuantity: "",
+  rate: "",
 };
 
 const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
@@ -45,6 +47,7 @@ const AddNewItem: React.FC<AddNewItemProps> = ({ onItemAdded }) => {
   const lengthNum = Number(formData.sheetLengthMm);
   const widthNum = Number(formData.sheetWidthMm);
   const initialQtyNum = Number(formData.initialQuantity);
+  const rateNum = Number(formData.rate);
 
   // Integer-only validation
   // Decimal (max 2dp) validation
@@ -70,6 +73,16 @@ if (
     return;
   }
 
+  // Rate validation
+  if (
+    !Number.isFinite(rateNum) ||
+    rateNum < 0 ||
+    !/^\d+(\.\d{1,2})?$/.test(formData.rate)
+  ) {
+    toast.error("Rate must be a non-negative number with up to 2 decimal places.");
+    return;
+  }
+
   setIsSubmitting(true);
   try {
     const response = await apiService.createInventoryItem({
@@ -79,6 +92,7 @@ if (
       brand: formData.brand.trim(),
       type: formData.type.trim(),
       initialQuantity: initialQtyNum,
+      rate: rateNum,
     });
 
     if (response?.success) {
@@ -136,6 +150,12 @@ if (
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Add New Inventory Item
             </h1>
+          </div>
+
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> All fields including the rate per unit are required. The system will automatically calculate stock valuation using the formula: Total Area × Thickness × Rate (where Total Area = Sheet Width × Sheet Length × Quantity ÷ 1,000,000).
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -260,6 +280,27 @@ if (
                 placeholder="Enter initial quantity"
                 min="0"
                 step="1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="rate"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Rate per unit (₹)
+              </label>
+              <input
+                type="number"
+                id="rate"
+                name="rate"
+                value={formData.rate}
+                onChange={handleChange}
+                placeholder="Enter rate per unit"
+                min="0"
+                step="0.01"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />

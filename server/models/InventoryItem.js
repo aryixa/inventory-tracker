@@ -47,6 +47,17 @@ const inventoryItemSchema = new mongoose.Schema({
     type: Number,
     min: [0, 'Total sqm cannot be negative']
   },
+  rate: {
+    type: mongoose.Schema.Types.Decimal128,
+    required: [true, 'Rate is required'],
+    min: [0, 'Rate cannot be negative'],
+    // Getter: convert Decimal128 → JS number for API/UI
+    get: v => v == null ? v : parseFloat(v.toString()),
+    // Setter: round to 2 decimal places before storing
+    set: v => v == null
+      ? v
+      : mongoose.Types.Decimal128.fromString(parseFloat(v).toFixed(2))
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -76,9 +87,26 @@ inventoryItemSchema.virtual('areaSqmPerUnit').get(function() {
   return 0;
 });
 
+// Virtual: total area in sqm (includes quantity)
+inventoryItemSchema.virtual('totalAreaSqm').get(function() {
+  if (this.sheetLengthMm && this.sheetWidthMm && this.currentQuantity) {
+    return (this.sheetLengthMm * this.sheetWidthMm * this.currentQuantity) / 1_000_000;
+  }
+  return 0;
+});
+
 // Virtual: display name
 inventoryItemSchema.virtual('displayName').get(function() {
   return `${this.brand} - ${this.thicknessMm}mm - ${this.sheetLengthMm}x${this.sheetWidthMm}mm - ${this.type}`;
+});
+
+// Virtual: stock valuation (Total Area × Thickness × Rate)
+inventoryItemSchema.virtual('stockValuation').get(function() {
+  if (this.totalAreaSqm && this.thicknessMm && this.rate) {
+    // Formula: total area * thickness * rate
+    return this.totalAreaSqm * this.thicknessMm * this.rate;
+  }
+  return 0;
 });
 
 // Pre-save hook: recompute totalSqm

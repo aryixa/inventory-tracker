@@ -33,21 +33,33 @@ export const exportInventory = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const csvData = items.map(item => ({
-      id: item._id.toString(),
-      brand: item.brand,
-      type: item.type,
-      thicknessMm: formatDecimal128(item.thicknessMm),
-      sheetLengthMm: item.sheetLengthMm,
-      sheetWidthMm: item.sheetWidthMm,
-      totalSqmPerUnit: formatDecimal128(item.totalSqmPerUnit),
-      initialQuantity: item.initialQuantity,
-      currentQuantity: item.currentQuantity,
-      totalSqm: formatDecimal128(item.totalSqm),
-      createdBy: item.createdBy?.username || 'Unknown',
-      createdAt: item.createdAt.toISOString(),
-      updatedAt: item.updatedAt.toISOString()
-    }));
+    const csvData = items.map(item => {
+      // Calculate area per unit and stock valuation
+      const areaSqmPerUnit = item.sheetLengthMm && item.sheetWidthMm 
+        ? (item.sheetLengthMm * item.sheetWidthMm) / 1_000_000 
+        : 0;
+      const thicknessInMeters = item.thicknessMm ? parseFloat(formatDecimal128(item.thicknessMm)) / 1000 : 0;
+      const rate = item.rate ? parseFloat(formatDecimal128(item.rate)) : 0;
+      const stockValuation = areaSqmPerUnit * thicknessInMeters * rate * item.currentQuantity;
+
+      return {
+        id: item._id.toString(),
+        brand: item.brand,
+        type: item.type,
+        thicknessMm: formatDecimal128(item.thicknessMm),
+        sheetLengthMm: item.sheetLengthMm,
+        sheetWidthMm: item.sheetWidthMm,
+        areaSqmPerUnit: areaSqmPerUnit.toFixed(4),
+        initialQuantity: item.initialQuantity,
+        currentQuantity: item.currentQuantity,
+        totalSqm: formatDecimal128(item.totalSqm),
+        rate: formatDecimal128(item.rate),
+        stockValuation: stockValuation.toFixed(2),
+        createdBy: item.createdBy?.username || 'Unknown',
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString()
+      };
+    });
 
     const fileName = `inventory-export-${Date.now()}.csv`;
     const filePath = path.join(__dirname, '../exports', fileName);
@@ -63,10 +75,12 @@ export const exportInventory = async (req, res) => {
         { id: 'thicknessMm', title: 'Thickness (mm)' },
         { id: 'sheetLengthMm', title: 'Length (mm)' },
         { id: 'sheetWidthMm', title: 'Width (mm)' },
-        { id: 'totalSqmPerUnit', title: 'Area per Unit (sqm)' },
+        { id: 'areaSqmPerUnit', title: 'Area per Unit (sqm)' },
         { id: 'initialQuantity', title: 'Initial Quantity' },
         { id: 'currentQuantity', title: 'Current Quantity' },
         { id: 'totalSqm', title: 'Total Area (sqm)' },
+        { id: 'rate', title: 'Rate per Unit (₹)' },
+        { id: 'stockValuation', title: 'Stock Valuation (₹)' },
         { id: 'createdBy', title: 'Created By' },
         { id: 'createdAt', title: 'Created At' },
         { id: 'updatedAt', title: 'Updated At' }

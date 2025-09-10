@@ -20,6 +20,7 @@ const EditInventoryModal: React.FC<EditInventoryModalProps> = ({
     thicknessMm: item.thicknessMm,
     sheetLengthMm: item.sheetLengthMm,
     sheetWidthMm: item.sheetWidthMm,
+    rate: item.rate,
   });
 
   const [saving, setSaving] = useState(false);
@@ -30,7 +31,7 @@ const EditInventoryModal: React.FC<EditInventoryModalProps> = ({
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name.includes("Mm") ? Number(value) : value,
+      [name]: name.includes("Mm") || name === "rate" ? Number(value) : value,
     }));
   };
 
@@ -127,6 +128,22 @@ const EditInventoryModal: React.FC<EditInventoryModalProps> = ({
               name="sheetWidthMm"
               type="number"
               value={formData.sheetWidthMm ?? ""}
+              onChange={handleChange}
+              className="border p-2 w-full rounded"
+            />
+          </div>
+
+          {/* Rate */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rate per unit (₹)
+            </label>
+            <input
+              name="rate"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.rate ?? ""}
               onChange={handleChange}
               className="border p-2 w-full rounded"
             />

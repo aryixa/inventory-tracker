@@ -44,6 +44,7 @@ export interface NewInventoryItemInput {
   brand: string;
   type: string;
   initialQuantity: number;   // whole units
+  rate: number;              // rate per unit
 }
 
 export interface InventoryItem {
@@ -56,6 +57,9 @@ export interface InventoryItem {
   initialQuantity: number;
   currentQuantity: number;
   totalSqm?: number;         // computed & stored on backend
+  rate: number;              // rate per unit
+  stockValuation?: number;   // computed virtual field: Area × Thickness × Rate × Quantity
+  areaSqmPerUnit?: number;   // computed virtual field: area per unit
   createdBy: {
     _id: string;
     username: string;

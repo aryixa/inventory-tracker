@@ -22,7 +22,6 @@ const InventoryManagement: React.FC = () => {
   const [showUseModal, setShowUseModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { user, isLoading: authIsLoading, isAdmin, canReduce } = useAuth();
   const { refreshKey } = useData();
@@ -46,10 +45,9 @@ const InventoryManagement: React.FC = () => {
   }, []);
 
   const loadItems = useCallback(
-    async (showRefresh = false) => {
+    async () => {
       if (authIsLoading) return;
       try {
-        if (showRefresh) setIsRefreshing(true);
         const response = await apiService.getInventoryItems({
           search: searchTerm,
         });
@@ -67,7 +65,6 @@ const InventoryManagement: React.FC = () => {
         toast.error(msg);
       } finally {
         setIsLoading(false);
-        if (showRefresh) setIsRefreshing(false);
       }
     },
     [authIsLoading, searchTerm]
@@ -207,10 +204,26 @@ const InventoryManagement: React.FC = () => {
     );
   }
 
+  // Calculate total stock valuation with fallback calculation
+  const totalStockValuation = items.reduce((total, item) => {
+    // Use backend stockValuation if available, otherwise calculate manually
+    let itemValuation = item.stockValuation || 0;
+    
+    // Fallback calculation for items without stockValuation
+    if (!itemValuation && item.rate && item.thicknessMm && item.sheetLengthMm && item.sheetWidthMm && item.currentQuantity) {
+      // Formula: total area * thickness * rate
+      // Total area = (sheet width * sheet length * quantity) / 1,000,000
+      const totalArea = (item.sheetLengthMm * item.sheetWidthMm * item.currentQuantity) / 1_000_000;
+      itemValuation = totalArea * item.thicknessMm * item.rate;
+    }
+    
+    return total + itemValuation;
+  }, 0);
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
           Inventory Management
         </h1>
@@ -224,6 +237,30 @@ const InventoryManagement: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Total Stock Valuation Banner */}
+      <div className="mb-8 p-6 bg-blue-600 rounded-lg shadow-md">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+              <Package className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">
+                Total Stock Valuation
+              </h2>
+              <p className="text-blue-100 text-sm">
+                {items.length} items • {items.reduce((sum, item) => sum + item.currentQuantity, 0)} total units
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-bold text-white">
+              ₹{totalStockValuation.toFixed(2)}
+            </div>
           </div>
         </div>
       </div>
@@ -328,6 +365,14 @@ const InventoryManagement: React.FC = () => {
     )}
     <div className="flex justify-between">
       <span className="text-sm font-medium text-gray-900">
+        Rate per unit:
+      </span>
+      <span className="text-sm font-medium text-gray-900">
+        {typeof item.rate === "number" ? `₹${item.rate.toFixed(2)}` : 'Not set'}
+      </span>
+    </div>
+    <div className="flex justify-between">
+      <span className="text-sm font-medium text-gray-900">
         Current stock:
       </span>
       <span
@@ -344,14 +389,35 @@ const InventoryManagement: React.FC = () => {
     </div>
   </div>
 
+  {/* Stock Valuation - prominently displayed */}
+  {(() => {
+    // Calculate stock valuation with fallback
+    let stockValuation = item.stockValuation || 0;
+    
+    // Fallback calculation for items without stockValuation
+    if (!stockValuation && item.rate && item.thicknessMm && item.sheetLengthMm && item.sheetWidthMm && item.currentQuantity) {
+      // Formula: total area * thickness * rate
+      // Total area = (sheet width * sheet length * quantity) / 1,000,000
+      const totalArea = (item.sheetLengthMm * item.sheetWidthMm * item.currentQuantity) / 1_000_000;
+      stockValuation = totalArea * item.thicknessMm * item.rate;
+    }
+    
+    return (
+      <div className="mb-4 p-3 bg-blue-100 rounded-lg">
+        <div className="flex justify-between items-center">
+          <span className="text-lg font-bold text-blue-900">
+            Stock Valuation:
+          </span>
+          <span className="text-lg font-bold text-blue-900">
+            {stockValuation > 0 ? `₹${stockValuation.toFixed(2)}` : 'N/A'}
+          </span>
+        </div>
+      </div>
+    );
+  })()}
+
   {/* Action buttons */}
-  <div
-    className="
-    flex flex-col gap-2 mt-auto
-    sm:flex-row
-    lg:flex-col
-  "
-  >
+  <div className="flex flex-col gap-2 mt-auto">
     {isAdmin && (
       <button
         onClick={() => {

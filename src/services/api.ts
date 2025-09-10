@@ -208,7 +208,8 @@ class ApiService {
   'type',
   'thicknessMm',
   'sheetLengthMm',
-  'sheetWidthMm'
+  'sheetWidthMm',
+  'rate'
 ] as const;
 
   const filteredPayload = Object.fromEntries(
@@ -221,6 +222,13 @@ class ApiService {
   if (filteredPayload.thicknessMm !== undefined) {
     filteredPayload.thicknessMm = parseFloat(
       Number(filteredPayload.thicknessMm).toFixed(2)
+    );
+  }
+
+  // Optional: format rate to 2 decimals if present
+  if (filteredPayload.rate !== undefined) {
+    filteredPayload.rate = parseFloat(
+      Number(filteredPayload.rate).toFixed(2)
     );
   }
 
