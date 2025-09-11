@@ -241,26 +241,22 @@ const InventoryManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Total Stock Valuation Banner */}
-      <div className="mb-8 p-6 bg-blue-600 rounded-lg shadow-md">
+      {/* Total Stock Valuation - Minimalist Design */}
+      <div className="mb-6 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-white" />
-            </div>
+          <div className="flex items-center gap-2">
+            <Package className="w-4 h-4 text-gray-600" />
             <div>
-              <h2 className="text-lg font-semibold text-white">
+              <span className="text-sm font-medium text-gray-700">
                 Total Stock Valuation
-              </h2>
-              <p className="text-blue-100 text-sm">
-                {items.length} items • {items.reduce((sum, item) => sum + item.currentQuantity, 0)} total units
-              </p>
+              </span>
+              <span className="text-xs text-gray-500 ml-2">
+                {items.length} items • {items.reduce((sum, item) => sum + item.currentQuantity, 0)} units
+              </span>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-white">
-              ₹{totalStockValuation.toFixed(2)}
-            </div>
+          <div className="text-xl font-semibold text-gray-900">
+            ₹{totalStockValuation.toFixed(2)}
           </div>
         </div>
       </div>
@@ -389,7 +385,7 @@ const InventoryManagement: React.FC = () => {
     </div>
   </div>
 
-  {/* Stock Valuation - prominently displayed */}
+  {/* Stock Valuation - Minimalist Design */}
   {(() => {
     // Calculate stock valuation with fallback
     let stockValuation = item.stockValuation || 0;
@@ -403,15 +399,13 @@ const InventoryManagement: React.FC = () => {
     }
     
     return (
-      <div className="mb-4 p-3 bg-blue-100 rounded-lg">
-        <div className="flex justify-between items-center">
-          <span className="text-lg font-bold text-blue-900">
-            Stock Valuation:
-          </span>
-          <span className="text-lg font-bold text-blue-900">
-            {stockValuation > 0 ? `₹${stockValuation.toFixed(2)}` : 'N/A'}
-          </span>
-        </div>
+      <div className="flex justify-between items-center py-2 border-t border-gray-200">
+        <span className="text-sm font-medium text-gray-700">
+          Stock Valuation
+        </span>
+        <span className="text-sm font-semibold text-gray-900">
+          {stockValuation > 0 ? `₹${stockValuation.toFixed(2)}` : 'N/A'}
+        </span>
       </div>
     );
   })()}

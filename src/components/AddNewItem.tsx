@@ -152,12 +152,6 @@ if (
             </h1>
           </div>
 
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> All fields including the rate per unit are required. The system will automatically calculate stock valuation using the formula: Total Area × Thickness × Rate (where Total Area = Sheet Width × Sheet Length × Quantity ÷ 1,000,000).
-            </p>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div>
