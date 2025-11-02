@@ -12,10 +12,11 @@ import {
   validatePasswordChange,
    validateMongoIdParam
 } from '../middleware/validation.js';
+import { accountLimiter } from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 
-router.use(protect);
+router.use(protect, accountLimiter);
 router.use(authorize('Admin'));
 
 

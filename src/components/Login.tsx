@@ -31,7 +31,7 @@ const Login: React.FC = () => {
                 }
             } catch (err) {
                 setIsSetup(false);
-                toast.error('Error checking admin status. Assuming no admin exists.');
+                toast.error('Error checking admin status. Please try again.');
             } finally {
                 setCheckingAdmin(false);
             }

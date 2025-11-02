@@ -46,7 +46,7 @@ app.use(
   '/api/',
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 300, // allow more headroom for legitimate users
+    max: 1000,
     standardHeaders: true,
     legacyHeaders: false,
   })

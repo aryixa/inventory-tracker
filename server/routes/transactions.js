@@ -7,12 +7,12 @@ import {
 } from '../controllers/transactionController.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { validateMongoIdParam } from '../middleware/validation.js';
+import { accountLimiter } from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 
 // All transaction routes require authentication
-router.use(protect);
-
+router.use(protect, accountLimiter);
 // List all transactions — adjust roles as needed
 router.get(
   '/',

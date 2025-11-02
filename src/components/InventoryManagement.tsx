@@ -204,15 +204,12 @@ const InventoryManagement: React.FC = () => {
     );
   }
 
-  // Calculate total stock valuation with fallback calculation
+  // Calculate total stock valuation 
   const totalStockValuation = items.reduce((total, item) => {
-    // Use backend stockValuation if available, otherwise calculate manually
     let itemValuation = item.stockValuation || 0;
     
-    // Fallback calculation for items without stockValuation
     if (!itemValuation && item.rate && item.thicknessMm && item.sheetLengthMm && item.sheetWidthMm && item.currentQuantity) {
-      // Formula: total area * thickness * rate
-      // Total area = (sheet width * sheet length * quantity) / 1,000,000
+      
       const totalArea = (item.sheetLengthMm * item.sheetWidthMm * item.currentQuantity) / 1_000_000;
       itemValuation = totalArea * item.thicknessMm * item.rate;
     }
@@ -241,7 +238,8 @@ const InventoryManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Total Stock Valuation - Minimalist Design */}
+      
+            {isAdmin && (
       <div className="mb-6 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -260,6 +258,8 @@ const InventoryManagement: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
+
 
       {/* Items Grid */}
       {items.length === 0 ? (
@@ -385,30 +385,39 @@ const InventoryManagement: React.FC = () => {
     </div>
   </div>
 
-  {/* Stock Valuation - Minimalist Design */}
-  {(() => {
-    // Calculate stock valuation with fallback
-    let stockValuation = item.stockValuation || 0;
-    
-    // Fallback calculation for items without stockValuation
-    if (!stockValuation && item.rate && item.thicknessMm && item.sheetLengthMm && item.sheetWidthMm && item.currentQuantity) {
-      // Formula: total area * thickness * rate
-      // Total area = (sheet width * sheet length * quantity) / 1,000,000
-      const totalArea = (item.sheetLengthMm * item.sheetWidthMm * item.currentQuantity) / 1_000_000;
-      stockValuation = totalArea * item.thicknessMm * item.rate;
-    }
-    
-    return (
-      <div className="flex justify-between items-center py-2 border-t border-gray-200">
-        <span className="text-sm font-medium text-gray-700">
-          Stock Valuation
-        </span>
-        <span className="text-sm font-semibold text-gray-900">
-          {stockValuation > 0 ? `₹${stockValuation.toFixed(2)}` : 'N/A'}
-        </span>
-      </div>
-    );
-  })()}
+  {/* Stock Valuation - Only visible to Admin */}
+{isAdmin && (() => {
+  // Calculate stock valuation with fallback
+  let stockValuation = item.stockValuation || 0;
+
+  // Fallback calculation for items without stockValuation
+  if (
+    !stockValuation &&
+    item.rate &&
+    item.thicknessMm &&
+    item.sheetLengthMm &&
+    item.sheetWidthMm &&
+    item.currentQuantity
+  ) {
+    // Formula: total area * thickness * rate
+    // Total area = (sheet width * sheet length * quantity) / 1,000,000
+    const totalArea =
+      (item.sheetLengthMm * item.sheetWidthMm * item.currentQuantity) / 1_000_000;
+    stockValuation = totalArea * item.thicknessMm * item.rate;
+  }
+
+  return (
+    <div className="flex justify-between items-center py-2 border-t border-gray-200">
+      <span className="text-sm font-medium text-gray-700">
+        Stock Valuation
+      </span>
+      <span className="text-sm font-semibold text-gray-900">
+        {stockValuation > 0 ? `₹${stockValuation.toFixed(2)}` : "N/A"}
+      </span>
+    </div>
+  );
+})()}
+
 
   {/* Action buttons */}
   <div className="flex flex-col gap-2 mt-auto">

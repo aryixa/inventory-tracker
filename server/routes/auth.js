@@ -4,6 +4,7 @@ import { register, login, logout, getMe, checkAdmin, refreshToken } from '../con
 import { protect } from '../middleware/auth.js';
 import { validateUserRegistration, validateUserLogin } from '../middleware/validation.js';
 import rateLimit from 'express-rate-limit';
+import { loginLimiter } from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ const authLimiter = rateLimit({
 
 // Public routes
 router.post('/register', authLimiter, validateUserRegistration, register);
-router.post('/login', authLimiter, validateUserLogin, login);
+router.post('/login', loginLimiter, validateUserLogin, login);
 router.post('/refresh', refreshToken);
 router.get('/check-admin', checkAdmin);
 

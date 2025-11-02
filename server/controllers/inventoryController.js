@@ -69,6 +69,12 @@ export const getInventoryItems = async (req, res) => {
         i.rate = parseFloat(i.rate.toString());
       }
     });
+      
+    if (req.user?.role !== "Admin") {
+      items.forEach(i => {
+        delete i.stockValuation;
+      });
+    }
 
     res.status(200).json({
       success: true,
