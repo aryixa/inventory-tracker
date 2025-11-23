@@ -33,6 +33,11 @@ const inventoryItemSchema = new mongoose.Schema({
     required: [true, 'Type is required'],
     trim: true
   },
+  category: {
+    type: String,
+    required: [true, 'Category is required'],
+    trim: true
+  },
   initialQuantity: {
     type: Number,
     required: [true, 'Initial quantity is required'],

@@ -163,9 +163,10 @@ const AllTransactions: React.FC = () => {
     if (!it) return "Deleted Item";
 
     // Safely get thickness, handling cases where it might be a string, number, or missing
-    const thickness = it.thicknessMm !== undefined && it.thicknessMm !== null
-      ? String(it.thicknessMm)
-      : 'N/A';
+    const thickness =
+      it.thicknessMm !== undefined && it.thicknessMm !== null
+        ? String(it.thicknessMm)
+        : "N/A";
 
     return `${it.brand} - ${thickness}mm - ${it.sheetLengthMm}x${it.sheetWidthMm}mm - ${it.type}`;
   };
@@ -484,6 +485,15 @@ const AllTransactions: React.FC = () => {
                   Item
                 </th>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Brand
+                </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Dimensions
+                </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Type
                 </th>
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -497,6 +507,7 @@ const AllTransactions: React.FC = () => {
                 </th>
               </tr>
             </thead>
+
             <tbody className="bg-white divide-y divide-gray-200">
               {transactions.length === 0 ? (
                 <tr>
@@ -517,9 +528,38 @@ const AllTransactions: React.FC = () => {
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatDateTime((transaction as any).createdAt)}
                     </td>
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {renderItemLabel(transaction)}
-                    </td>
+
+                    {(() => {
+                      const it = (transaction as any).item_id;
+                      const brand = it?.brand || "N/A";
+                      const category = it?.category || it?.type || "N/A";
+                      const itemName = it?.name || it?.type || "Deleted Item";
+                      const thickness = it?.thicknessMm
+                        ? `${it.thicknessMm}mm`
+                        : "N/A";
+                      const dimensions =
+                        it?.sheetLengthMm && it?.sheetWidthMm
+                          ? `${it.sheetLengthMm}x${it.sheetWidthMm}mm`
+                          : "N/A";
+
+                      return (
+                        <>
+                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {itemName}
+                          </td>
+                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {brand}
+                          </td>
+                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {category}
+                          </td>
+                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {`${thickness} / ${dimensions}`}
+                          </td>
+                        </>
+                      );
+                    })()}
+
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                       {getTransactionTypeDisplay(transaction)}
                     </td>

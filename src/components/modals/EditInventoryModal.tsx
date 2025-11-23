@@ -17,6 +17,7 @@ const EditInventoryModal: React.FC<EditInventoryModalProps> = ({
   const [formData, setFormData] = useState<Partial<InventoryItem>>({
     brand: item.brand || "",
     type: item.type || "",
+    category: item.category || "",
     thicknessMm: item.thicknessMm,
     sheetLengthMm: item.sheetLengthMm,
     sheetWidthMm: item.sheetWidthMm,
@@ -57,8 +58,8 @@ const EditInventoryModal: React.FC<EditInventoryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-lg shadow-lg">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg shadow-lg max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-bold mb-4">Edit Inventory Item</h2>
 
         <div className="space-y-4">
@@ -85,6 +86,20 @@ const EditInventoryModal: React.FC<EditInventoryModalProps> = ({
               name="type"
               type="text"
               value={formData.type ?? ""}
+              onChange={handleChange}
+              className="border p-2 w-full rounded"
+            />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category
+            </label>
+            <input
+              name="category"
+              type="text"
+              value={formData.category ?? ""}
               onChange={handleChange}
               className="border p-2 w-full rounded"
             />

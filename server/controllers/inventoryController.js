@@ -152,6 +152,7 @@ export const createInventoryItem = async (req, res) => {
       sheetWidthMm,
       brand,
       type,
+      category,
       initialQuantity,
       rate,
     } = req.body;
@@ -195,11 +196,11 @@ export const createInventoryItem = async (req, res) => {
       });
     }
 
-    if (!brand || !type) {
+    if (!brand || !type || !category) {
       await session.abortTransaction();
       return res.status(400).json({
         success: false,
-        message: "brand and type are required.",
+        message: "brand, type and category are required.",
       });
     }
 
@@ -209,6 +210,7 @@ export const createInventoryItem = async (req, res) => {
       sheetWidthMm: widthVal,
       brand,
       type,
+      category,
       isActive: true,
     }).session(session);
 
@@ -236,6 +238,7 @@ export const createInventoryItem = async (req, res) => {
       sheetWidthMm: widthVal,
       brand,
       type,
+      category,
       initialQuantity: initialQtyVal,
       currentQuantity: initialQtyVal,
       rate: mongoose.Types.Decimal128.fromString(rateVal.toFixed(2)),
@@ -426,7 +429,7 @@ export const updateInventoryItem = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const allowedFields = ['brand', 'type', 'thicknessMm', 'sheetLengthMm', 'sheetWidthMm', 'rate'];
+    const allowedFields = ['brand', 'type', 'category', 'thicknessMm', 'sheetLengthMm', 'sheetWidthMm', 'rate'];
 
     const updateData = {};
     for (const field of allowedFields) {
@@ -461,11 +464,14 @@ export const updateInventoryItem = async (req, res) => {
       );
     }
     if (updateData.brand !== undefined) {
-     updateData.brand = String(updateData.brand).trim();
-   }
-   if (updateData.type !== undefined) {
-     updateData.type = String(updateData.type).trim();
-   }
+      updateData.brand = String(updateData.brand).trim();
+    }
+    if (updateData.type !== undefined) {
+      updateData.type = String(updateData.type).trim();
+    }
+    if (updateData.category !== undefined) {
+      updateData.category = String(updateData.category).trim();
+    }
     const updatedItem = await InventoryItem.findByIdAndUpdate(
       id,
       { $set: updateData },

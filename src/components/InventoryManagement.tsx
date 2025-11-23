@@ -32,12 +32,14 @@ const InventoryManagement: React.FC = () => {
     if (!t) return true;
     const brand = item.brand?.toLowerCase() || "";
     const type = item.type?.toLowerCase() || "";
+    const category = item.category?.toLowerCase() || "";
     const thickness = (item.thicknessMm ?? "").toString();
     const length = (item.sheetLengthMm ?? "").toString();
     const width = (item.sheetWidthMm ?? "").toString();
     return (
       brand.includes(t) ||
       type.includes(t) ||
+      category.includes(t) ||
       thickness.includes(t) ||
       length.includes(t) ||
       width.includes(t)
@@ -349,6 +351,16 @@ const InventoryManagement: React.FC = () => {
         {item.sheetWidthMm}mm
       </span>
     </div>
+    {item.category && (
+      <div className="flex justify-between">
+        <span className="text-sm font-medium text-gray-900">
+          Category:
+        </span>
+        <span className="text-sm font-medium text-gray-900">
+          {item.category}
+        </span>
+      </div>
+    )}
     {typeof item.totalSqm === "number" && (
       <div className="flex justify-between">
         <span className="text-sm font-medium text-gray-900">

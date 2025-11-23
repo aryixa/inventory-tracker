@@ -206,6 +206,7 @@ class ApiService {
   const allowedFields = [
   'brand',
   'type',
+  'category',
   'thicknessMm',
   'sheetLengthMm',
   'sheetWidthMm',

@@ -83,6 +83,12 @@ export const validateInventoryItem = [
     .withMessage('Type is required')
     .isLength({ max: 100 })
     .withMessage('Type cannot exceed 100 characters'),
+  body('category')
+    .trim()
+    .notEmpty()
+    .withMessage('Category is required')
+    .isLength({ max: 100 })
+    .withMessage('Category cannot exceed 100 characters'),
   body('initialQuantity')
     .isInt({ min: 0 })
     .withMessage('Initial quantity must be a non-negative integer'),
@@ -106,6 +112,24 @@ export const validateInventoryUpdate = [
     .optional()
     .isFloat({ gt: 0 })
     .withMessage('sheetWidthMm must be a positive number (mm)'),
+
+  body('brand')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Brand cannot exceed 100 characters'),
+
+  body('type')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Type cannot exceed 100 characters'),
+
+  body('category')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Category cannot exceed 100 characters'),
 
   handleValidationErrors,
 ];

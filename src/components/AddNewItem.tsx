@@ -14,6 +14,7 @@ interface FormState {
   sheetWidthMm: string;
   brand: string;
   type: string;
+  category: string;
   initialQuantity: string;
   rate: string;
 }
@@ -24,6 +25,7 @@ const defaultFormData: FormState = {
   sheetWidthMm: "",
   brand: "",
   type: "",
+  category: "",
   initialQuantity: "",
   rate: "",
 };
@@ -91,6 +93,7 @@ if (
       sheetWidthMm: widthNum,
       brand: formData.brand.trim(),
       type: formData.type.trim(),
+      category: formData.category.trim(),
       initialQuantity: initialQtyNum,
       rate: rateNum,
     });
@@ -196,6 +199,26 @@ if (
 
               <div>
                 <label
+                  htmlFor="category"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Category
+                </label>
+                <input
+                  type="text"
+                  id="category"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  placeholder="Enter category"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                  maxLength={100}
+                />
+              </div>
+
+              <div>
+                <label
                   htmlFor="thicknessMm"
                   className="block text-sm font-medium text-gray-700 mb-2"
                 >
@@ -258,46 +281,48 @@ if (
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="initialQuantity"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Initial quantity
-              </label>
-              <input
-                type="number"
-                id="initialQuantity"
-                name="initialQuantity"
-                value={formData.initialQuantity}
-                onChange={handleChange}
-                placeholder="Enter initial quantity"
-                min="0"
-                step="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label
+                  htmlFor="initialQuantity"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Initial quantity
+                </label>
+                <input
+                  type="number"
+                  id="initialQuantity"
+                  name="initialQuantity"
+                  value={formData.initialQuantity}
+                  onChange={handleChange}
+                  placeholder="Enter initial quantity"
+                  min="0"
+                  step="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="rate"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Rate per unit (₹)
-              </label>
-              <input
-                type="number"
-                id="rate"
-                name="rate"
-                value={formData.rate}
-                onChange={handleChange}
-                placeholder="Enter rate per unit"
-                min="0"
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
+              <div>
+                <label
+                  htmlFor="rate"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Rate per unit (₹)
+                </label>
+                <input
+                  type="number"
+                  id="rate"
+                  name="rate"
+                  value={formData.rate}
+                  onChange={handleChange}
+                  placeholder="Enter rate per unit"
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
             </div>
 
             <button

@@ -15,7 +15,7 @@ export const protect = async (req, res, next) => {
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'No token provided',
+        message: 'Please login again!',
         code: 'NO_TOKEN'
       });
     }

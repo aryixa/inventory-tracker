@@ -43,6 +43,7 @@ export interface NewInventoryItemInput {
   sheetWidthMm: number;      // mm
   brand: string;
   type: string;
+  category: string;
   initialQuantity: number;   // whole units
   rate: number;              // rate per unit
 }
@@ -54,6 +55,7 @@ export interface InventoryItem {
   sheetWidthMm: number;
   brand: string;
   type: string;
+  category: string;
   initialQuantity: number;
   currentQuantity: number;
   totalSqm?: number;         // computed & stored on backend
