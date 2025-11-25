@@ -55,7 +55,7 @@ export interface InventoryItem {
   sheetWidthMm: number;
   brand: string;
   type: string;
-  category: string;
+  category?: string;
   initialQuantity: number;
   currentQuantity: number;
   totalSqm?: number;         // computed & stored on backend

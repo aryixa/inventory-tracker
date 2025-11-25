@@ -35,7 +35,10 @@ const inventoryItemSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    required: [true, 'Category is required'],
+    // Category is kept optional at the schema level so that legacy
+    // documents without a category can still be updated (e.g. when
+    // adjusting quantities). New items are still required to provide
+    // a category via request validation and controller checks.
     trim: true
   },
   initialQuantity: {
