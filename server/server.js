@@ -112,12 +112,14 @@ import userRoutes from './routes/users.js';
 import inventoryRoutes from './routes/inventory.js';
 import transactionRoutes from './routes/transactions.js';
 import exportRoutes from './routes/export.js';
+import dashboardRoutes from './routes/dashboard.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

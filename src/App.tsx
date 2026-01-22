@@ -13,10 +13,12 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
 import InventoryManagement from "./components/InventoryManagement";
+import UsageDashboard from "./components/UsageDashboard";
 import AddNewItem from "./components/AddNewItem";
 import AllTransactions from "./components/AllTransactions";
 import ExportData from "./components/ExportData";
 import UserManagement from "./components/UserManagement";
+import CategoriesView from "./components/CategoriesView";
 import { DataProvider } from "./contexts/DataContext";
 
 const AppRoutes: React.FC = () => {
@@ -37,6 +39,14 @@ const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute roles={["Admin", "User", "Viewer"]}>
               <InventoryManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/usage-dashboard"
+          element={
+            <ProtectedRoute roles={["Admin", "User", "Viewer"]}>
+              <UsageDashboard />
             </ProtectedRoute>
           }
         />
@@ -73,6 +83,14 @@ const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute roles={["Admin", "User", "Viewer"]}>
               <AllTransactions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/categories"
+          element={
+            <ProtectedRoute roles={["Admin"]}>
+              <CategoriesView />
             </ProtectedRoute>
           }
         />

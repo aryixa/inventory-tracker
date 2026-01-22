@@ -9,6 +9,8 @@ import {
   NewInventoryItemInput,
   TransactionStats,
   AdminCreateUserInput,
+  CategoryUsage,
+  UsageDashboardFilters,
 } from "../types";
 
 const API_BASE_URL = (() => {
@@ -200,45 +202,44 @@ class ApiService {
 
   // --- Inventory methods ---
   async updateInventoryItem(
-  item_id: string,
-  updateData: Partial<InventoryItem>
-): Promise<ApiResponse<InventoryItem>> {
-  const allowedFields = [
-  'brand',
-  'type',
-  'category',
-  'thicknessMm',
-  'sheetLengthMm',
-  'sheetWidthMm',
-  'rate'
-] as const;
+    item_id: string,
+    updateData: Partial<InventoryItem>
+  ): Promise<ApiResponse<InventoryItem>> {
+    const allowedFields = [
+      'brand',
+      'type',
+      'category',
+      'thicknessMm',
+      'sheetLengthMm',
+      'sheetWidthMm',
+      'rate'
+    ] as const;
 
-  const filteredPayload = Object.fromEntries(
-    Object.entries(updateData).filter(([key]) =>
-      allowedFields.includes(key as any)
-    )
-  );
-
-  // Optional: format thicknessMm to 2 decimals if present
-  if (filteredPayload.thicknessMm !== undefined) {
-    filteredPayload.thicknessMm = parseFloat(
-      Number(filteredPayload.thicknessMm).toFixed(2)
+    const filteredPayload = Object.fromEntries(
+      Object.entries(updateData).filter(([key]) =>
+        allowedFields.includes(key as any)
+      )
     );
+
+    // Optional: format thicknessMm to 2 decimals if present
+    if (filteredPayload.thicknessMm !== undefined) {
+      filteredPayload.thicknessMm = parseFloat(
+        Number(filteredPayload.thicknessMm).toFixed(2)
+      );
+    }
+
+    // Optional: format rate to 2 decimals if present
+    if (filteredPayload.rate !== undefined) {
+      filteredPayload.rate = parseFloat(
+        Number(filteredPayload.rate).toFixed(2)
+      );
+    }
+
+    return this.request<InventoryItem>(`/inventory/${item_id}`, {
+      method: 'PUT',
+      body: JSON.stringify(filteredPayload),
+    });
   }
-
-  // Optional: format rate to 2 decimals if present
-  if (filteredPayload.rate !== undefined) {
-    filteredPayload.rate = parseFloat(
-      Number(filteredPayload.rate).toFixed(2)
-    );
-  }
-
-  return this.request<InventoryItem>(`/inventory/${item_id}`, {
-    method: 'PUT',
-    body: JSON.stringify(filteredPayload),
-  });
-}
-
 
   async getInventoryItems(
     params: Record<string, any> = {}
@@ -246,6 +247,19 @@ class ApiService {
     const queryString = buildQuery(params);
     return this.request<InventoryItem[]>(
       `/inventory${queryString ? `?${queryString}` : ""}`
+    );
+  }
+
+  async getInventoryCategories(): Promise<ApiResponse<string[]>> {
+    return this.request<string[]>('/inventory/categories');
+  }
+
+  async getInventoryItemsByCategory(
+    category: string
+  ): Promise<ApiResponse<InventoryItem[]>> {
+    const queryString = buildQuery({ category });
+    return this.request<InventoryItem[]>(
+      `/inventory/by-category${queryString ? `?${queryString}` : ""}`
     );
   }
 
@@ -289,6 +303,27 @@ class ApiService {
 
   async getTransactionStats(): Promise<ApiResponse<TransactionStats>> {
     return this.request<TransactionStats>("/transactions/stats");
+  }
+
+  // --- Usage Dashboard methods ---
+  async getCategoryUsage(
+    filters: UsageDashboardFilters = {}
+  ): Promise<ApiResponse<CategoryUsage[]>> {
+    // Only include filters that have actual values
+    const cleanFilters: Record<string, string> = {};
+    
+    if (filters.startDate && filters.startDate.trim() !== '') {
+      cleanFilters.startDate = filters.startDate;
+    }
+    
+    if (filters.endDate && filters.endDate.trim() !== '') {
+      cleanFilters.endDate = filters.endDate;
+    }
+    
+    const queryString = buildQuery(cleanFilters);
+    return this.request<CategoryUsage[]>(
+      `/dashboard/category-usage${queryString ? `?${queryString}` : ""}`
+    );
   }
 }
 

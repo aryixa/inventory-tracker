@@ -6,7 +6,9 @@ import {
   createInventoryItem,
   updateInventoryQuantity,
   deleteInventoryItem,
-updateInventoryItem
+  updateInventoryItem,
+  getInventoryCategories,
+  getItemsByCategory,
 } from '../controllers/inventoryController.js';
 import { protect, authorize } from '../middleware/auth.js';
 import {
@@ -26,6 +28,18 @@ router.use(protect, accountLimiter);
 router.route('/')
   .get(authorize('Admin', 'User', 'Viewer'), getInventoryItems)
   .post(authorize('Admin'), validateInventoryItem, createInventoryItem);
+
+router.get(
+  '/categories',
+  authorize('Admin'),
+  getInventoryCategories
+);
+
+router.get(
+  '/by-category',
+  authorize('Admin'),
+  getItemsByCategory
+);
 
 router.route('/:id')
   .get(authorize('Admin', 'User', 'Viewer'), validateMongoIdParam, getInventoryItem)

@@ -96,6 +96,68 @@ export const getInventoryItems = async (req, res) => {
 };
 
 /**
+ * @desc Get inventory items for a specific category, sorted by thickness
+ * @route GET /api/inventory/by-category?category=...
+ * @access Private
+ */
+export const getItemsByCategory = async (req, res) => {
+  try {
+    const rawCategory = (req.query.category ?? "").toString().trim();
+
+    if (!rawCategory) {
+      return res.status(400).json({
+        success: false,
+        message: "category query parameter is required",
+      });
+    }
+
+    const query = {
+      isActive: true,
+      category: rawCategory,
+    };
+
+    let mongooseQuery = InventoryItem.find(query)
+      .populate("createdBy", "username")
+      .sort({ thicknessMm: 1 });
+
+    const [items, total] = await Promise.all([
+      mongooseQuery.lean({ virtuals: true }),
+      InventoryItem.countDocuments(query),
+    ]);
+
+    items.forEach((i) => {
+      if (i.thicknessMm && i.thicknessMm._bsontype === "Decimal128") {
+        i.thicknessMm = parseFloat(i.thicknessMm.toString());
+      }
+      if (i.rate && i.rate._bsontype === "Decimal128") {
+        i.rate = parseFloat(i.rate.toString());
+      }
+    });
+
+    if (req.user?.role !== "Admin") {
+      items.forEach((i) => {
+        delete i.stockValuation;
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: items,
+      meta: {
+        count: items.length,
+        total,
+      },
+    });
+  } catch (error) {
+    console.error("Get items by category error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching items by category",
+    });
+  }
+};
+
+/**
  * @desc Get single inventory item
  * @route GET /api/inventory/:id
  * @access Private
@@ -288,6 +350,31 @@ export const createInventoryItem = async (req, res) => {
     });
   } finally {
     session.endSession();
+  }
+};
+
+/**
+ * @desc Get distinct inventory categories
+ * @route GET /api/inventory/categories
+ * @access Private
+ */
+export const getInventoryCategories = async (req, res) => {
+  try {
+    const categories = await InventoryItem.distinct("category", {
+      isActive: true,
+      category: { $ne: null, $ne: "" },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: categories,
+    });
+  } catch (error) {
+    console.error("Get inventory categories error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching inventory categories",
+    });
   }
 };
 

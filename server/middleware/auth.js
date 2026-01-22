@@ -26,18 +26,18 @@ export const protect = async (req, res, next) => {
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
         const isProd = process.env.NODE_ENV === 'production';
-res.cookie(cookieName, '', {
-  httpOnly: true,
-  secure: isProd,
-  sameSite: isProd ? 'none' : 'lax',
-  path: '/',
-  expires: new Date(0),
-});
+        res.cookie(cookieName, '', {
+          httpOnly: true,
+          secure: isProd,
+          sameSite: isProd ? 'none' : 'lax',
+          path: '/',
+          expires: new Date(0),
+        });
 
         return res.status(401).json({
           success: false,
           code: 'TOKEN_EXPIRED'
-       });
+        });
       }
       return res.status(401).json({
         success: false,

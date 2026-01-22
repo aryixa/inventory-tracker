@@ -103,6 +103,19 @@ export interface TransactionStats {
   totalQuantityReduced?: number;
 }
 
+// ------------------- USAGE DASHBOARD -------------------
+
+export interface CategoryUsage {
+  category: string;
+  totalItemsUsed: number;
+  totalSqmArea: number;
+}
+
+export interface UsageDashboardFilters {
+  startDate?: string;
+  endDate?: string;
+}
+
 // ------------------- API -------------------
 
 export interface ApiResponse<T = any> {
