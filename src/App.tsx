@@ -42,10 +42,11 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        {/* Admin-only */}
         <Route
           path="/usage-dashboard"
           element={
-            <ProtectedRoute roles={["Admin", "User", "Viewer"]}>
+            <ProtectedRoute roles={["Admin"]}>
               <UsageDashboard />
             </ProtectedRoute>
           }

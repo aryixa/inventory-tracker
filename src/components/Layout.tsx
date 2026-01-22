@@ -48,7 +48,7 @@ const Layout: React.FC = () => {
 const navItems = user
   ? [
       { path: '/', icon: Package, label: 'Inventory', roles: ['Admin', 'User', 'Viewer'] },
-      { path: '/usage-dashboard', icon: TrendingUp, label: 'Usage Dashboard', roles: ['Admin', 'User', 'Viewer'] },
+      { path: '/usage-dashboard', icon: TrendingUp, label: 'Usage Dashboard', roles: ['Admin'] },
       { path: '/transactions', icon: Clock, label: 'Logs', roles: ['Admin', 'User', 'Viewer'] },
       { path: '/categories', icon: FolderTree, label: 'Categories', roles: ['Admin'] },
       { path: '/add-item', icon: Plus, label: 'Add', roles: ['Admin'] },
