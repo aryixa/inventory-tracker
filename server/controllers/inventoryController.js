@@ -33,6 +33,7 @@ export const getInventoryItems = async (req, res) => {
       const or = [
         { brand: { $regex: term, $options: "i" } },
         { type: { $regex: term, $options: "i" } },
+        { category: { $regex: term, $options: "i" } },
       ];
 
       if (Number.isFinite(numeric)) {

@@ -41,9 +41,6 @@ router.get('/category-usage', protect, async (req, res) => {
       end = tmp;
     }
 
-    // ✅ FIX: await distinct before filtering
-    const allCategories = (await InventoryItem.distinct('category')).filter(Boolean);
-
     const createdAtFilter =
       start && end
         ? { $gte: start, $lte: end }
@@ -60,17 +57,44 @@ router.get('/category-usage', protect, async (req, res) => {
       ...(createdAtFilter ? { createdAt: createdAtFilter } : {})
     }).populate('item_id');
 
-    // Calculate usage by category
+    // Calculate usage by category and thickness
     const categoryUsageMap = new Map();
 
-    // Initialize all categories with zero usage
-    allCategories.forEach(category => {
-      categoryUsageMap.set(category, {
+    const allCategoryThicknessPairs = await InventoryItem.aggregate([
+      {
+        $match: {
+          category: { $exists: true, $ne: null, $ne: '' }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            category: '$category',
+            thicknessMm: '$thicknessMm'
+          }
+        }
+      }
+    ]);
+
+    for (const pair of allCategoryThicknessPairs) {
+      const category = pair?._id?.category;
+      const thicknessRaw = pair?._id?.thicknessMm;
+      if (!category || thicknessRaw == null) continue;
+
+      const thicknessMm = typeof thicknessRaw === 'number'
+        ? thicknessRaw
+        : Number.parseFloat(thicknessRaw.toString());
+
+      if (!Number.isFinite(thicknessMm)) continue;
+
+      const key = `${category}|${thicknessMm}`;
+      categoryUsageMap.set(key, {
         category,
+        thicknessMm,
         totalItemsUsed: 0,
         totalSqmArea: 0
       });
-    });
+    }
 
     // Process usage transactions
     for (const transaction of usageTransactions) {
@@ -78,6 +102,14 @@ router.get('/category-usage', protect, async (req, res) => {
       if (!inventoryItem || !inventoryItem.category) continue;
 
       const category = inventoryItem.category;
+      const thicknessRaw = inventoryItem.thicknessMm;
+      const thicknessMm = typeof thicknessRaw === 'number'
+        ? thicknessRaw
+        : thicknessRaw == null
+          ? NaN
+          : Number.parseFloat(thicknessRaw.toString());
+
+      if (!Number.isFinite(thicknessMm)) continue;
       const quantityUsed = Math.abs(transaction.quantityChanged || 0);
 
       // Guard against missing dimensions
@@ -88,23 +120,34 @@ router.get('/category-usage', protect, async (req, res) => {
         (inventoryItem.sheetWidthMm * inventoryItem.sheetLengthMm) / 1_000_000;
       const totalAreaSqm = areaPerUnitSqm * quantityUsed;
 
-      if (!categoryUsageMap.has(category)) {
-        categoryUsageMap.set(category, {
+      // Create composite key for category + thickness
+      const key = `${category}|${thicknessMm}`;
+
+      if (!categoryUsageMap.has(key)) {
+        categoryUsageMap.set(key, {
           category,
+          thicknessMm,
           totalItemsUsed: 0,
           totalSqmArea: 0
         });
       }
 
-      const usage = categoryUsageMap.get(category);
+      const usage = categoryUsageMap.get(key);
       usage.totalItemsUsed += quantityUsed;
       usage.totalSqmArea += totalAreaSqm;
     }
 
-    // Convert to array and sort by category name
+    // Convert to array and sort by category name, then by thickness
     const categoryUsage = Array.from(categoryUsageMap.values())
       .filter(usage => usage.category) // Filter out null/undefined categories
-      .sort((a, b) => a.category.localeCompare(b.category));
+      .sort((a, b) => {
+        // First sort by category name
+        const categoryComparison = a.category.localeCompare(b.category);
+        if (categoryComparison !== 0) return categoryComparison;
+        
+        // Then sort by thickness (ascending)
+        return (a.thicknessMm ?? 0) - (b.thicknessMm ?? 0);
+      });
 
     res.json({
       success: true,

@@ -47,6 +47,7 @@ export const getTransactions = async (req, res) => {
               _id: 1,
               brand: 1,
               type: 1,
+              category: 1,
               // THIS IS THE CRITICAL FIX: convert the Decimal128 to a string
               thicknessMm: { $toString: "$thicknessMm" }, 
               sheetLengthMm: 1,
@@ -80,6 +81,7 @@ export const getTransactions = async (req, res) => {
       const orConds = [
         { 'item.brand': { $regex: term, $options: 'i' } },
         { 'item.type': { $regex: term, $options: 'i' } },
+        { 'item.category': { $regex: term, $options: 'i' } },
         { 'user.username': { $regex: term, $options: 'i' } }
       ];
       // Note: The number search for thickness will now search on a string, which might not be ideal.

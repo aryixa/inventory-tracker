@@ -107,6 +107,7 @@ export interface TransactionStats {
 
 export interface CategoryUsage {
   category: string;
+  thicknessMm: number;
   totalItemsUsed: number;
   totalSqmArea: number;
 }

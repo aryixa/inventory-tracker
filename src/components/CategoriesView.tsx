@@ -205,13 +205,16 @@ const CategoriesView: React.FC = () => {
                             Type
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Width
-                          </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Length
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Width
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Brand
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Quantity
                           </th>
                         </tr>
                       </thead>
@@ -225,13 +228,16 @@ const CategoriesView: React.FC = () => {
                               {item.type || 'N/A'}
                             </td>
                             <td className="px-3 py-2 text-gray-900">
-                              {item.sheetWidthMm || 0}mm
-                            </td>
-                            <td className="px-3 py-2 text-gray-900">
                               {item.sheetLengthMm || 0}mm
                             </td>
                             <td className="px-3 py-2 text-gray-900">
+                              {item.sheetWidthMm || 0}mm
+                            </td>
+                            <td className="px-3 py-2 text-gray-900">
                               {item.brand || 'N/A'}
+                            </td>
+                            <td className="px-3 py-2 text-gray-900">
+                              {item.currentQuantity || 0}
                             </td>
                           </tr>
                         ))}
@@ -266,7 +272,7 @@ const CategoriesView: React.FC = () => {
                   Items in "{selectedCategory}"
                 </h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Sorted by: thickness → type → width → length
+                  Sorted by: thickness → type → length → width
                 </p>
               </div>
               <button
@@ -305,13 +311,16 @@ const CategoriesView: React.FC = () => {
                         Type
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Width
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Length
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Width
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Brand
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Quantity
                       </th>
                     </tr>
                   </thead>
@@ -325,13 +334,16 @@ const CategoriesView: React.FC = () => {
                           {item.type || 'N/A'}
                         </td>
                         <td className="px-3 py-2 text-gray-900">
-                          {item.sheetWidthMm || 0}mm
-                        </td>
-                        <td className="px-3 py-2 text-gray-900">
                           {item.sheetLengthMm || 0}mm
                         </td>
                         <td className="px-3 py-2 text-gray-900">
+                          {item.sheetWidthMm || 0}mm
+                        </td>
+                        <td className="px-3 py-2 text-gray-900">
                           {item.brand || 'N/A'}
+                        </td>
+                        <td className="px-3 py-2 text-gray-900">
+                          {item.currentQuantity || 0}
                         </td>
                       </tr>
                     ))}

@@ -170,7 +170,7 @@ const UsageDashboard: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category Name
+                    Item Type
                   </th>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Total Items Used
@@ -183,11 +183,12 @@ const UsageDashboard: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {categoryUsage.map((category) => (
                   <tr 
-                    key={category.category} 
+                    key={`${category.category}-${category.thicknessMm}`} 
                     className="hover:bg-gray-50"
                   >
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {category.category || 'Uncategorized'}
+                      <div className="font-semibold">{category.thicknessMm}MM</div>
+                      <div>{category.category || 'Uncategorized'}</div>
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-blue-600 font-semibold">
