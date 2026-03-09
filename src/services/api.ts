@@ -291,6 +291,26 @@ class ApiService {
     return this.downloadRequest("/export/transactions");
   }
 
+  async exportCategoryUsage(
+    filters: UsageDashboardFilters = {}
+  ): Promise<Blob> {
+    // Only include filters that have actual values
+    const cleanFilters: Record<string, string> = {};
+    
+    if (filters.startDate && filters.startDate.trim() !== '') {
+      cleanFilters.startDate = filters.startDate;
+    }
+    
+    if (filters.endDate && filters.endDate.trim() !== '') {
+      cleanFilters.endDate = filters.endDate;
+    }
+    
+    const queryString = buildQuery(cleanFilters);
+    return this.downloadRequest(
+      `/export/category-usage${queryString ? `?${queryString}` : ""}`
+    );
+  }
+
   // --- Transaction methods ---
   async getTransactions(
     params: Record<string, any> = {}

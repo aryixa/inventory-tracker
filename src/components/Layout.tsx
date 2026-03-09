@@ -186,7 +186,7 @@ const navItems = user
         <div className="hidden md:flex">{Sidebar}</div>
 
         {/* Main content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto touch-pan-y">
           <Outlet />
         </div>
       </div>

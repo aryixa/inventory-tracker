@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Calendar, Package, TrendingUp } from "lucide-react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { Calendar, Package, TrendingUp, ArrowUpDown } from "lucide-react";
 import { CategoryUsage, UsageDashboardFilters } from "../types";
 import { useAuth } from "../contexts/AuthContext";
 import apiService from "../services/api";
@@ -14,6 +14,7 @@ const UsageDashboard: React.FC = () => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
 
   const { user, isLoading: authIsLoading } = useAuth();
   const { refreshKey } = useData();
@@ -74,6 +75,20 @@ const UsageDashboard: React.FC = () => {
     }
     setEndDate(date);
   };
+
+  const handleSort = () => {
+    const newOrder = sortOrder === 'asc' ? 'desc' : sortOrder === 'desc' ? null : 'asc';
+    setSortOrder(newOrder);
+  };
+
+  const sortedCategoryUsage = useMemo(() => {
+    if (!sortOrder) return categoryUsage;
+    
+    return [...categoryUsage].sort((a, b) => {
+      const comparison = a.totalSqmArea - b.totalSqmArea;
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+  }, [categoryUsage, sortOrder]);
 
   if (authIsLoading) {
     return (
@@ -176,12 +191,18 @@ const UsageDashboard: React.FC = () => {
                     Total Items Used
                   </th>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Area (sqm)
+                    <button
+                      onClick={handleSort}
+                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                    >
+                      Total Area (sqm)
+                      <ArrowUpDown className={`w-4 h-4 ${sortOrder ? 'text-blue-600' : 'text-gray-400'}`} />
+                    </button>
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {categoryUsage.map((category) => (
+                {sortedCategoryUsage.map((category) => (
                   <tr 
                     key={`${category.category}-${category.thicknessMm}`} 
                     className="hover:bg-gray-50"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Package, Clock, FileDown } from 'lucide-react';
+import { Download, Package, Clock, FileDown, TrendingUp } from 'lucide-react';
 import apiService from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -96,12 +96,26 @@ if (inventoryResponse.success) {
     }
   };
 
+  const exportCategoryUsage = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await apiService.exportCategoryUsage();
+      downloadFile(blob, `category-usage-export-${new Date().toISOString().split('T')[0]}.csv`);
+      toast.success('Category usage details exported successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to export category usage details');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const exportAll = async () => {
     setIsExporting(true);
     try {
       // Refactored to use await for reliable sequential execution
       await exportInventory();
       await exportTransactions();
+      await exportCategoryUsage();
       toast.success('All data exported successfully!');
     } catch (error: any) {
       toast.error(error.message || 'Failed to export data');
@@ -200,6 +214,40 @@ if (inventoryResponse.success) {
           </button>
         </div>
 
+        {/* Category Usage */}
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Category Usage</h3>
+              <p className="text-xs sm:text-sm text-gray-600">Export category usage details</p>
+            </div>
+          </div>
+
+          <div className="space-y-2 mb-4 sm:mb-6">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Data Type:</span>
+              <span className="font-medium">Usage Analytics</span>
+            </div>
+            <div className="text-xs text-gray-500">
+              <p>• Category-wise usage statistics</p>
+              <p>• Total area calculations</p>
+              <p>• Date-filtered data</p>
+            </div>
+          </div>
+
+          <button
+            onClick={exportCategoryUsage}
+            disabled={isExporting}
+            className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm"
+          >
+            <FileDown className="w-4 h-4" />
+            Export Category Usage
+          </button>
+        </div>
+
         {/* Complete Export */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 md:col-span-2 lg:col-span-1">
           <div className="flex items-center gap-3 mb-4">
@@ -215,11 +263,12 @@ if (inventoryResponse.success) {
           <div className="space-y-2 mb-4 sm:mb-6">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Files Generated:</span>
-              <span className="font-medium">2 CSV files</span>
+              <span className="font-medium">3 CSV files</span>
             </div>
             <div className="text-xs text-gray-500">
               <p>• inventory-export-[date].csv</p>
               <p>• transactions-export-[date].csv</p>
+              <p>• category-usage-export-[date].csv</p>
             </div>
           </div>
 

@@ -288,11 +288,11 @@ const InventoryManagement: React.FC = () => {
   <div className="flex items-start justify-between mb-4">
     <div className="min-w-0 flex-1">
   
-      <div className="overflow-x-auto overflow-y-hidden whitespace-nowrap">
-        <h3 className="font-bold text-xl text-blue-900">
+      <div className="overflow-x-auto scrollbar-hide touch-pan-x">
+        <h3 className="font-bold text-xl text-blue-900 whitespace-nowrap">
           {item.type}
         </h3>
-        <p className="text-sm text-gray-900">
+        <p className="text-sm text-gray-900 whitespace-nowrap">
           {item.brand}
         </p>
       </div>
