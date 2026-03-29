@@ -1,6 +1,5 @@
 // src/components/Login.tsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Shield, LogIn, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
@@ -16,7 +15,6 @@ const Login: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [checkingAdmin, setCheckingAdmin] = useState(true);
     const { login, register } = useAuth();
-    const navigate = useNavigate();
 
     const [shouldLoginAfterSetup, setShouldLoginAfterSetup] = useState(false);
 

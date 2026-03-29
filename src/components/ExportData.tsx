@@ -10,6 +10,7 @@ const ExportData: React.FC = () => {
     totalTransactions: 0,
     additionTransactions: 0,
     reductionTransactions: 0,
+    totalCategories: 0,
   });
   const [isExporting, setIsExporting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,9 +22,10 @@ const ExportData: React.FC = () => {
   const loadStats = async () => {
     try {
       // Removed the limit to ensure all items are fetched for accurate stats
-      const [inventoryResponse, transactionStatsResponse] = await Promise.all([
+      const [inventoryResponse, transactionStatsResponse, categoriesResponse] = await Promise.all([
         apiService.getInventoryItems(),
         apiService.getTransactionStats(),
+        apiService.getInventoryCategories(),
       ]);
 
 if (inventoryResponse.success) {
@@ -50,6 +52,14 @@ if (inventoryResponse.success) {
     reductionTransactions: transactionStats?.totalReductions || 0,
   }));
 }
+
+      if (categoriesResponse.success) {
+        const categories = categoriesResponse.data || [];
+        setStats(prev => ({
+          ...prev,
+          totalCategories: categories.length,
+        }));
+      }
 
     } catch (error: any) {
       console.error('Error loading stats:', error);
@@ -143,9 +153,9 @@ if (inventoryResponse.success) {
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Export Data</h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8 max-w-6xl mx-auto">
         {/* Current Inventory */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 flex flex-col h-full">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
@@ -156,7 +166,7 @@ if (inventoryResponse.success) {
             </div>
           </div>
 
-          <div className="space-y-2 mb-4 sm:mb-6">
+          <div className="space-y-2 mb-4 sm:mb-6 flex-grow">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Total Items:</span>
               <span className="font-medium">{stats.totalItems}</span>
@@ -170,7 +180,7 @@ if (inventoryResponse.success) {
           <button
             onClick={exportInventory}
             disabled={isExporting}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm mt-auto"
           >
             <FileDown className="w-4 h-4" />
             Export Inventory
@@ -178,7 +188,7 @@ if (inventoryResponse.success) {
         </div>
 
         {/* Transaction History */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 flex flex-col h-full">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
@@ -189,7 +199,7 @@ if (inventoryResponse.success) {
             </div>
           </div>
 
-          <div className="space-y-2 mb-4 sm:mb-6">
+          <div className="space-y-2 mb-4 sm:mb-6 flex-grow">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Total Transactions:</span>
               <span className="font-medium">{stats.totalTransactions}</span>
@@ -207,7 +217,7 @@ if (inventoryResponse.success) {
           <button
             onClick={exportTransactions}
             disabled={isExporting}
-            className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm"
+            className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm mt-auto"
           >
             <FileDown className="w-4 h-4" />
             Export Transactions
@@ -215,7 +225,7 @@ if (inventoryResponse.success) {
         </div>
 
         {/* Category Usage */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 flex flex-col h-full">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
@@ -226,10 +236,10 @@ if (inventoryResponse.success) {
             </div>
           </div>
 
-          <div className="space-y-2 mb-4 sm:mb-6">
+          <div className="space-y-2 mb-4 sm:mb-6 flex-grow">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Data Type:</span>
-              <span className="font-medium">Usage Analytics</span>
+              <span className="text-gray-600">Total Categories:</span>
+              <span className="font-medium text-orange-600 font-semibold">{stats.totalCategories}</span>
             </div>
             <div className="text-xs text-gray-500">
               <p>• Category-wise usage statistics</p>
@@ -241,7 +251,7 @@ if (inventoryResponse.success) {
           <button
             onClick={exportCategoryUsage}
             disabled={isExporting}
-            className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm"
+            className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 text-sm mt-auto"
           >
             <FileDown className="w-4 h-4" />
             Export Category Usage
@@ -249,7 +259,7 @@ if (inventoryResponse.success) {
         </div>
 
         {/* Complete Export */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 md:col-span-2 lg:col-span-1">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 flex flex-col h-full">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <Download className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
@@ -260,7 +270,7 @@ if (inventoryResponse.success) {
             </div>
           </div>
 
-          <div className="space-y-2 mb-4 sm:mb-6">
+          <div className="space-y-2 mb-4 sm:mb-6 flex-grow">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Files Generated:</span>
               <span className="font-medium">3 CSV files</span>
