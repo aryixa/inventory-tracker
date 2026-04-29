@@ -14,6 +14,7 @@ const UsageDashboard: React.FC = () => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<'area' | 'items' | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
 
   const { user, isLoading: authIsLoading } = useAuth();
@@ -76,19 +77,38 @@ const UsageDashboard: React.FC = () => {
     setEndDate(date);
   };
 
-  const handleSort = () => {
-    const newOrder = sortOrder === 'asc' ? 'desc' : sortOrder === 'desc' ? null : 'asc';
-    setSortOrder(newOrder);
+  const handleSort = (field: 'area' | 'items') => {
+    if (sortBy === field) {
+      // Toggle order if same field
+      const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+      setSortOrder(newOrder);
+    } else {
+      // Switch field and default to desc (high to low)
+      setSortBy(field);
+      setSortOrder('desc');
+    }
   };
 
   const sortedCategoryUsage = useMemo(() => {
-    if (!sortOrder) return categoryUsage;
+    // Filter out items with zero usage (both items and area are 0)
+    const filteredUsage = categoryUsage.filter(
+      category => category.totalItemsUsed > 0 || category.totalSqmArea > 0
+    );
     
-    return [...categoryUsage].sort((a, b) => {
-      const comparison = a.totalSqmArea - b.totalSqmArea;
+    if (!sortBy || !sortOrder) return filteredUsage;
+    
+    return [...filteredUsage].sort((a, b) => {
+      let comparison: number;
+      
+      if (sortBy === 'area') {
+        comparison = a.totalSqmArea - b.totalSqmArea;
+      } else {
+        comparison = a.totalItemsUsed - b.totalItemsUsed;
+      }
+      
       return sortOrder === 'asc' ? comparison : -comparison;
     });
-  }, [categoryUsage, sortOrder]);
+  }, [categoryUsage, sortBy, sortOrder]);
 
   if (authIsLoading) {
     return (
@@ -188,15 +208,21 @@ const UsageDashboard: React.FC = () => {
                     Item Type
                   </th>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Items Used
+                    <button
+                      onClick={() => handleSort('items')}
+                      className="flex items-center gap-1 hover:text-gray-700 transition-colors"
+                    >
+                      Total Items Used
+                      <ArrowUpDown className={`w-4 h-4 ${sortBy === 'items' ? 'text-blue-600' : 'text-gray-400'}`} />
+                    </button>
                   </th>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <button
-                      onClick={handleSort}
+                      onClick={() => handleSort('area')}
                       className="flex items-center gap-1 hover:text-gray-700 transition-colors"
                     >
                       Total Area (sqm)
-                      <ArrowUpDown className={`w-4 h-4 ${sortOrder ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <ArrowUpDown className={`w-4 h-4 ${sortBy === 'area' ? 'text-blue-600' : 'text-gray-400'}`} />
                     </button>
                   </th>
                 </tr>
