@@ -5,11 +5,11 @@ import Transaction from '../models/Transaction.js';
 export const getTransactions = async (req, res) => {
   try {
     let page = parseInt(req.query.page || '1', 10);
-    let limit = parseInt(req.query.limit || '20', 10);
+    let limit = parseInt(req.query.limit || '15', 10);
     const { transactionType, reductionReason, search, date } = req.query;
 
     if (isNaN(page) || page < 1) page = 1;
-    if (isNaN(limit) || limit < 1) limit = 20;
+    if (isNaN(limit) || limit < 1) limit = 15;
 
     const pipeline = [];
 

@@ -5,18 +5,19 @@ import { InventoryItem } from '../../types';
 
 interface AddStockModalProps {
   item: InventoryItem;
-  onConfirm: (quantity: number) => void;
+  onConfirm: (quantity: number, remarks: string) => void;
   onClose: () => void;
 }
 
 const AddStockModal: React.FC<AddStockModalProps> = ({ item, onConfirm, onClose }) => {
   const [quantity, setQuantity] = useState('');
+  const [remarks, setRemarks] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const qty = parseInt(quantity, 10);
-    if (Number.isInteger(qty) && qty > 0) {
-      onConfirm(qty);
+    if (Number.isInteger(qty) && qty > 0 && remarks.trim() !== '') {
+      onConfirm(qty, remarks.trim());
     }
   };
 
@@ -63,6 +64,25 @@ const AddStockModal: React.FC<AddStockModalProps> = ({ item, onConfirm, onClose 
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
               autoFocus
+            />
+          </div>
+
+          <div className="mb-6">
+            <label
+              htmlFor="remarks"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Remarks
+            </label>
+            <textarea
+              id="remarks"
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="e.g., Supplier delivery, restock, etc."
+              rows={3}
+              maxLength={500}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+              required
             />
           </div>
 

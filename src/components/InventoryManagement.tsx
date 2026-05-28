@@ -114,7 +114,7 @@ const InventoryManagement: React.FC = () => {
     };
   }, [socket, user, searchTerm, matchesSearch]);
 
-  const handleAddStock = async (quantity: number) => {
+  const handleAddStock = async (quantity: number, remarks: string) => {
     if (!selectedItem || !user) return;
     if (!isAdmin) {
       toast.error("Only admins can add stock.");
@@ -126,6 +126,7 @@ const InventoryManagement: React.FC = () => {
         {
           transactionType: "addition",
           quantityChanged: quantity,
+          notes: remarks || undefined,
         }
       );
       if (response.success) {

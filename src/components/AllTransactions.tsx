@@ -32,7 +32,7 @@ const AllTransactions: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("none");
 
   const { refreshKey } = useData();
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 15;
 
   const loadTransactions = useCallback(
     async (showRefresh = false) => {
@@ -467,6 +467,11 @@ const AllTransactions: React.FC = () => {
                   <div className="mt-1">
                     {getStockChangeDisplay(transaction)}
                   </div>
+                  {(transaction as any).notes && (
+                    <div className="mt-2 text-sm bg-gray-50 p-2 rounded border border-gray-100 text-gray-600">
+                      <span className="font-semibold text-gray-700">Remarks:</span> {(transaction as any).notes}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -505,6 +510,9 @@ const AllTransactions: React.FC = () => {
                 <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Stock Change
                 </th>
+                <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Remarks
+                </th>
               </tr>
             </thead>
 
@@ -512,7 +520,7 @@ const AllTransactions: React.FC = () => {
               {transactions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={10}
                     className="px-4 sm:px-6 py-12 text-center text-gray-500"
                   >
                     <Clock className="mx-auto w-12 h-12 text-gray-400 mb-4" />
@@ -573,6 +581,13 @@ const AllTransactions: React.FC = () => {
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">
                       {getStockChangeDisplay(transaction)}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title={(transaction as any).notes || ""}>
+                      {(transaction as any).notes ? (
+                        <span className="italic">"{(transaction as any).notes}"</span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
                     </td>
                   </tr>
                 ))
